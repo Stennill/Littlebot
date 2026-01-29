@@ -1,0 +1,562 @@
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const micBtn = document.getElementById('mic');
+const stopBtn = document.getElementById('stopBtn');
+const wakeWordBtn = document.getElementById('wakeWord');
+const messages = document.getElementById('messages');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const anthropicVersionInput = document.getElementById('anthropicVersionInput');
+const anthropicModelInput = document.getElementById('anthropicModelInput');
+const saveApiKey = document.getElementById('saveApiKey');
+const closeSettings = document.getElementById('closeSettings');
+const clearHistory = document.getElementById('clearHistory');
+const settingsStatus = document.getElementById('settingsStatus');
+const probeApiBtn = document.getElementById('probeApi');
+const probeResult = document.getElementById('probeResult');
+const voiceSelect = document.getElementById('voiceSelect');
+const rateInput = document.getElementById('rateInput');
+const pitchInput = document.getElementById('pitchInput');
+const volumeInput = document.getElementById('volumeInput');
+const rateVal = document.getElementById('rateVal');
+const pitchVal = document.getElementById('pitchVal');
+const volumeVal = document.getElementById('volumeVal');
+const testVoice = document.getElementById('testVoice');
+const bot = document.getElementById('bot');
+const panel = document.getElementById('panel');
+
+// Debug: Check if all elements exist
+console.log('=== LittleBot Debug ===');
+console.log('settingsBtn:', settingsBtn);
+console.log('settingsModal:', settingsModal);
+console.log('closeSettings:', closeSettings);
+console.log('=====================');
+
+let wakeWordActive = false;
+let isSpeaking = false;
+let currentUtterance = null;
+let hideTimer = null;
+
+// Particles no longer needed with SVG orb
+
+// Auto-hide panel after 60 seconds
+function startHideTimer() {
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => {
+    panel.classList.add('hidden');
+  }, 60000); // 60 seconds
+}
+
+function showPanel() {
+  panel.classList.remove('hidden');
+  startHideTimer();
+}
+
+// Toggle panel visibility on bot click
+if (bot) {
+  bot.addEventListener('click', () => {
+    if (panel.classList.contains('hidden')) {
+      showPanel();
+    } else {
+      clearTimeout(hideTimer);
+      panel.classList.add('hidden');
+    }
+  });
+}
+
+// Simple markdown parser for bot messages
+function parseMarkdown(text) {
+  return text
+    // Bold: **text** or __text__
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    // Italic: *text* or _text_
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
+    // Bullet lists: • or -
+    .replace(/^[•\-]\s+(.+)$/gm, '<li>$1</li>')
+    // Line breaks
+    .replace(/\n/g, '<br>');
+}
+
+function appendMessage(who, text) {
+  const el = document.createElement('div');
+  el.className = 'message ' + who;
+  
+  if (who === 'bot') {
+    // Parse markdown for bot messages
+    let html = parseMarkdown(text);
+    // Wrap consecutive <li> items in <ul>
+    html = html.replace(/(<li>.*<\/li>\s*)+/gs, match => '<ul>' + match + '</ul>');
+    el.innerHTML = html;
+  } else {
+    // Plain text for user messages
+    el.textContent = text;
+  }
+  
+  // Prepend to show newest at bottom (since column-reverse is used)
+  messages.insertBefore(el, messages.firstChild);
+  
+  // Show panel and reset hide timer
+  showPanel();
+}
+
+// Parse markdown in bot messages
+async function saveHistory() {
+  const history = [];
+  const messageEls = messages.querySelectorAll('.message');
+  messageEls.forEach(el => {
+    const who = el.classList.contains('user') ? 'user' : 'bot';
+    const text = who === 'user' ? el.textContent : el.innerHTML;
+    history.push({ who, text, isHtml: who === 'bot', timestamp: Date.now() });
+  });
+  // Reverse because messages are stored in reverse order in DOM
+  history.reverse();
+  try {
+    await window.electronAPI.saveHistory(history);
+  } catch (e) {
+    console.error('Failed to save history', e);
+  }
+}
+
+sendBtn.addEventListener('click', () => {
+  const text = input.value.trim();
+  if (!text) return;
+  appendMessage('user', text);
+  input.value = '';
+  window.electronAPI.sendMessage(text);
+});
+
+// Allow Enter key to send message
+if (input) {
+  input.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter' || e.keyCode === 13) {
+      e.preventDefault();
+      console.log('Enter pressed'); // Debug
+      sendBtn.click();
+    }
+  });
+  
+  // Reset hide timer while user is typing
+  input.addEventListener('input', () => {
+    if (!panel.classList.contains('hidden')) {
+      startHideTimer();
+    }
+  });
+}
+
+window.electronAPI.onReply((reply) => {
+  appendMessage('bot', reply);
+});
+
+let voiceSettings = { voiceURI: null, rate: 1.0, pitch: 1.0, volume: 1.0 };
+
+async function loadSettings() {
+  try {
+    const s = await window.electronAPI.getSettings();
+    if (s) {
+      if (s.anthropicKey) apiKeyInput.value = s.anthropicKey;
+        voiceSettings = Object.assign(voiceSettings, s.voice || {});
+        // Set default version if not present
+        anthropicVersionInput.value = s.anthropicVersion || '2023-06-01';
+        anthropicModelInput.value = s.anthropicModel || 'claude-sonnet-4-5-20250929';
+    } else {
+      // Set defaults for first run
+      anthropicVersionInput.value = '2023-06-01';
+      anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
+    }
+  } catch (e) {
+    // Set defaults on error
+    anthropicVersionInput.value = '2023-06-01';
+    anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
+  }
+}
+
+// populate voices
+function populateVoices() {
+  const voices = speechSynthesis.getVoices();
+  voiceSelect.innerHTML = '';
+  voices.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.voiceURI || v.name;
+    opt.textContent = `${v.name} (${v.lang})`;
+    voiceSelect.appendChild(opt);
+  });
+  // select stored voice if available
+  if (voiceSettings.voiceURI) {
+    voiceSelect.value = voiceSettings.voiceURI;
+  }
+}
+
+if ('speechSynthesis' in window) {
+  populateVoices();
+  window.speechSynthesis.onvoiceschanged = populateVoices;
+}
+
+loadSettings().then(() => {
+  // apply loaded settings to UI
+  if (voiceSettings.rate) { rateInput.value = voiceSettings.rate; rateVal.textContent = voiceSettings.rate; }
+  if (voiceSettings.pitch) { pitchInput.value = voiceSettings.pitch; pitchVal.textContent = voiceSettings.pitch; }
+  if (voiceSettings.volume) { volumeInput.value = voiceSettings.volume; volumeVal.textContent = voiceSettings.volume; }
+  if (voiceSettings.voiceURI) voiceSelect.value = voiceSettings.voiceURI;
+}).catch(()=>{});
+
+// Speech-to-text using Windows Speech Recognition (works offline!)
+let recognizing = false;
+let useWindowsSpeech = true; // Use Windows Speech by default
+
+// Set up listener for Windows Speech results
+window.electronAPI.onSpeechResult((result) => {
+  if (result.text) {
+    const confidenceLabel = result.confidence ? ` (${result.confidence}% confident)` : '';
+    appendMessage('user', result.text + confidenceLabel);
+    window.electronAPI.sendMessage(result.text);
+    
+    // Alert user if confidence is low
+    if (result.confidence && result.confidence < 40) {
+      appendMessage('bot', '⚠️ Low confidence - speech may not be accurate. Try training Windows Speech Recognition.');
+    }
+  }
+  recognizing = false;
+  micBtn.textContent = '🎤';
+});
+
+// Handle speech timeout (no speech detected or silence)
+window.electronAPI.onSpeechTimeout(() => {
+  recognizing = false;
+  micBtn.textContent = '🎤';
+  appendMessage('bot', 'No speech detected or stopped listening.');
+});
+
+// Also keep Web Speech API as fallback
+let recognition;
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.continuous = false;
+  
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    appendMessage('user', text);
+    window.electronAPI.sendMessage(text);
+  };
+  
+  recognition.onend = () => { 
+    recognizing = false; 
+    micBtn.textContent = '🎤'; 
+  };
+  
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error:', event.error, event);
+    recognizing = false;
+    micBtn.textContent = '🎤';
+    
+    if (event.error === 'network') {
+      appendMessage('bot', 'Switching to Windows Speech Recognition (offline mode)...');
+      useWindowsSpeech = true;
+    } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+      alert('Microphone permission denied. Please allow microphone access in your browser/OS settings.');
+    } else if (event.error === 'no-speech') {
+      appendMessage('bot', 'No speech detected. Please try again.');
+    } else if (event.error === 'audio-capture') {
+      alert('No microphone found. Please connect a microphone and try again.');
+    } else {
+      appendMessage('bot', `Speech error: ${event.error}. Please type your message instead.`);
+    }
+  };
+}
+
+if (micBtn) {
+  micBtn.addEventListener('click', async () => {
+  if (recognizing) {
+    // Stop current recognition
+    if (useWindowsSpeech) {
+      await window.electronAPI.stopWindowsSpeech();
+    } else if (recognition) {
+      recognition.stop();
+    }
+    recognizing = false;
+    micBtn.textContent = '🎤';
+  } else {
+    // Start recognition
+    recognizing = true;
+    micBtn.textContent = '⏹';
+    
+    if (useWindowsSpeech) {
+      // Use Windows Speech Recognition (offline, no Google required)
+      const result = await window.electronAPI.startWindowsSpeech();
+      if (!result.success) {
+        recognizing = false;
+        micBtn.textContent = '🎤';
+        appendMessage('bot', 'Speech recognition failed. Please type your message instead.');
+      }
+    } else {
+      // Try Web Speech API (requires internet/Google)
+      if (!recognition) {
+        recognizing = false;
+        micBtn.textContent = '🎤';
+        alert('Speech recognition not available.');
+        return;
+      }
+      
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        recognition.start();
+      } catch (err) {
+        console.error('Microphone access error:', err);
+        recognizing = false;
+        micBtn.textContent = '🎤';
+        alert('Cannot access microphone. Please grant permission in your browser settings.');
+      }
+    }
+  }
+});
+} else {
+  console.log('Mic button not found (speech features disabled)');
+}
+
+// Text-to-speech DISABLED
+/*
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  
+  // Cancel any ongoing speech
+  speechSynthesis.cancel();
+  
+  const u = new SpeechSynthesisUtterance(text);
+  currentUtterance = u;
+  
+  // apply voice settings
+  if (voiceSelect && voiceSelect.value) {
+    const v = speechSynthesis.getVoices().find(x => (x.voiceURI || x.name) === voiceSelect.value || x.name === voiceSelect.value);
+    if (v) u.voice = v;
+  }
+  u.rate = parseFloat(rateInput.value || 1);
+  u.pitch = parseFloat(pitchInput.value || 1);
+  u.volume = parseFloat(volumeInput.value || 1);
+  
+  u.onstart = () => {
+    isSpeaking = true;
+    stopBtn.classList.remove('hidden');
+  };
+  
+  u.onend = () => {
+    isSpeaking = false;
+    stopBtn.classList.add('hidden');
+    currentUtterance = null;
+  };
+  
+  u.onerror = () => {
+    isSpeaking = false;
+    stopBtn.classList.add('hidden');
+    currentUtterance = null;
+  };
+  
+  speechSynthesis.speak(u);
+}
+*/
+
+// Stop button handler - DISABLED
+/*
+if (stopBtn) {
+  stopBtn.addEventListener('click', () => {
+  if (isSpeaking) {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    stopBtn.classList.add('hidden');
+    currentUtterance = null;
+    appendMessage('bot', '(Speech interrupted)');
+  }
+});
+
+// Listen for stop TTS command
+window.electronAPI.onStopTTS(() => {
+  if (isSpeaking) {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    stopBtn.classList.add('hidden');
+    currentUtterance = null;
+  }
+});
+*/
+
+// Settings modal behavior
+if (settingsBtn) {
+  console.log('Attaching click listener to settings button');
+  settingsBtn.addEventListener('click', async (e) => {
+    console.log('=== Settings Button Clicked ===');
+    e.stopPropagation();
+    await window.electronAPI.openSettings();
+    console.log('Settings window opened');
+  });
+} else {
+  console.error('Settings button not found!');
+}
+
+if (closeSettings) {
+  closeSettings.addEventListener('click', () => {
+    console.log('Closing settings modal');
+    settingsModal.classList.add('hidden');
+    settingsModal.style.display = 'none';
+    settingsStatus.textContent = '';
+  });
+} else {
+  console.error('Close settings button not found!');
+}
+
+if (clearHistory) {
+  clearHistory.addEventListener('click', async () => {
+    if (confirm('Are you sure you want to clear all chat history?')) {
+      try {
+        await window.electronAPI.clearHistory();
+        // Clear UI
+        messages.innerHTML = '';
+        settingsStatus.textContent = 'History cleared!';
+        settingsStatus.style.color = '#48bb78';
+        setTimeout(() => {
+          settingsStatus.textContent = '';
+        }, 2000);
+      } catch (e) {
+        settingsStatus.textContent = 'Failed to clear history';
+        settingsStatus.style.color = '#f56565';
+      }
+    }
+  });
+} else {
+  console.error('Clear History button not found!');
+}
+
+if (saveApiKey) {
+  saveApiKey.addEventListener('click', async () => {
+    const key = apiKeyInput.value.trim() || null;
+    try {
+      const version = anthropicVersionInput.value.trim() || null;
+      const model = anthropicModelInput.value.trim() || null;
+      await window.electronAPI.setSettings({ anthropicKey: key, anthropicVersion: version, anthropicModel: model });
+      settingsStatus.textContent = 'Saved.';
+      setTimeout(() => settingsStatus.textContent = '', 2000);
+    } catch (err) {
+      settingsStatus.textContent = 'Save failed.';
+    }
+  });
+} else {
+  console.error('Save API Key button not found!');
+}
+
+if (probeApiBtn) {
+  probeApiBtn.addEventListener('click', async () => {
+    probeResult.classList.remove('hidden');
+    probeResult.textContent = 'Probing...';
+    try {
+      const r = await window.electronAPI.probeAnthropic();
+      probeResult.textContent = JSON.stringify(r, null, 2);
+    } catch (e) {
+      probeResult.textContent = 'Probe failed: ' + e.message;
+    }
+  });
+} else {
+  console.error('Probe API button not found!');
+}
+
+// Voice controls
+if (rateInput) rateInput.addEventListener('input', () => { rateVal.textContent = rateInput.value; });
+if (pitchInput) pitchInput.addEventListener('input', () => { pitchVal.textContent = pitchInput.value; });
+if (volumeInput) volumeInput.addEventListener('input', () => { volumeVal.textContent = volumeInput.value; });
+
+if (testVoice) {
+  testVoice.addEventListener('click', () => { speak('This is a voice test from LittleBot.'); });
+}
+
+// Save voice settings when closing settings or when Test/Save pressed
+closeSettings.addEventListener('click', async () => {
+  settingsModal.classList.add('hidden');
+  settingsStatus.textContent = '';
+  await saveVoiceSettings();
+});
+
+async function saveVoiceSettings() {
+  const cfg = {
+    voice: {
+      voiceURI: voiceSelect.value || null,
+      rate: parseFloat(rateInput.value || 1),
+      pitch: parseFloat(pitchInput.value || 1),
+      volume: parseFloat(volumeInput.value || 1)
+    }
+  };
+  try {
+    await window.electronAPI.setSettings(cfg);
+    settingsStatus.textContent = 'Saved.';
+    setTimeout(() => settingsStatus.textContent = '', 1500);
+  } catch (e) {
+    settingsStatus.textContent = 'Save failed.';
+  }
+}
+
+// Wake word functionality
+if (wakeWordBtn) {
+  wakeWordBtn.addEventListener('click', async () => {
+  if (wakeWordActive) {
+    await window.electronAPI.stopWakeWord();
+    wakeWordActive = false;
+    wakeWordBtn.textContent = '👂';
+    wakeWordBtn.style.opacity = '0.5';
+    wakeWordBtn.style.color = '#fff';
+    appendMessage('bot', 'Wake word disabled. Click the 🎤 button to use voice.');
+  } else {
+    appendMessage('bot', 'Starting wake word detection...');
+    const result = await window.electronAPI.startWakeWord();
+    if (result.success) {
+      wakeWordActive = true;
+      wakeWordBtn.textContent = '👂';
+      wakeWordBtn.style.opacity = '1';
+      wakeWordBtn.style.color = '#4CAF50';
+      appendMessage('bot', '✅ Wake word active! Say "Hey LittleBot" to activate voice input.');
+    } else {
+      appendMessage('bot', '❌ Failed to start wake word: ' + (result.error || 'Unknown error'));
+    }
+  }
+});
+} else {
+  console.log('Wake word button not found (speech features disabled)');
+}
+
+// Listen for wake word detection
+window.electronAPI.onWakeWordDetected(async () => {
+  appendMessage('bot', '👂 Listening...');
+  
+  // Automatically start speech recognition
+  const result = await window.electronAPI.startWindowsSpeech();
+  if (!result.success) {
+    appendMessage('bot', 'Speech recognition failed.');
+  }
+  
+  // Restart wake word listening after a short delay
+  setTimeout(async () => {
+    if (wakeWordActive) {
+      await window.electronAPI.startWakeWord();
+    }
+  }, 1000);
+});
+
+// Listen for wake word status updates
+window.electronAPI.onWakeWordStatus((status) => {
+  if (status.status === 'listening' && wakeWordActive) {
+    wakeWordBtn.style.opacity = '1';
+  } else if (status.status === 'stopped') {
+    if (wakeWordActive) {
+      wakeWordBtn.style.opacity = '0.7';
+    }
+  }
+});
+
+// Auto-start wake word on load if previously enabled
+setTimeout(() => {
+  // Can add persistence here if desired
+  // For now, user must manually enable it each time
+}, 500);
+
+// Load settings on startup
+loadSettings();

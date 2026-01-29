@@ -1,0 +1,16 @@
+{
+  "name": "littlebot",
+  "version": "0.1.0",
+  "description": "LittleBot — corner desktop assistant",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^26.0.0",
+    "electron-builder": "^24.6.0"
+  },
+  "dependencies": {}
+}
