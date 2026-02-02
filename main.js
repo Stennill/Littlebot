@@ -2,15 +2,48 @@ const { app, BrowserWindow, ipcMain, screen, session, shell } = require('electro
 const path = require('path');
 const fs = require('fs').promises;
 const { spawn } = require('child_process');
+const memoryStore = require('./memory');
 
 let speechProcess = null;
 let wakeWordProcess = null;
 let mainWindow = null;
 let settingsWindow = null;
 let historyWindow = null;
+let memoryWindow = null;
 let storedConfig = {};
 let storedApiKey = null;
 let activeSessionId = null; // Track current active session ID
+
+function createMemoryWindow() {
+  if (memoryWindow) {
+    memoryWindow.focus();
+    return;
+  }
+
+  memoryWindow = new BrowserWindow({
+    width: 750,
+    height: 700,
+    frame: true,
+    transparent: false,
+    alwaysOnTop: true,
+    resizable: true,
+    title: 'LittleBot Memory',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      webSecurity: true
+    }
+  });
+
+  memoryWindow.loadFile(path.join(__dirname, 'renderer', 'memory.html'));
+  memoryWindow.center();
+
+  memoryWindow.on('closed', () => {
+    memoryWindow = null;
+  });
+}
 
 function createSettingsWindow() {
   if (settingsWindow) {
@@ -382,6 +415,20 @@ ipcMain.handle('open-history', async () => {
   return true;
 });
 
+// Memory management handlers (internal use only)
+ipcMain.handle('memory-add-fact', async (event, fact, category) => {
+  return await memoryStore.addFact(fact, category);
+});
+
+ipcMain.handle('memory-add-topic', async (event, topic, knowledge) => {
+  return await memoryStore.addTopicKnowledge(topic, knowledge);
+});
+
+ipcMain.handle('memory-clear', async () => {
+  return await memoryStore.clearAll();
+});
+
+
 ipcMain.handle('probe-anthropic', async (event) => {
   // Probe the Anthropic Messages API with the correct version
   const anthropicKey = storedApiKey || process.env.ANTHROPIC_API_KEY || null;
@@ -741,12 +788,16 @@ ipcMain.on('assistant-message', (event, text) => {
     try {
       const endpoint = 'https://api.anthropic.com/v1/messages';
 
+      // Get relevant memories for this query
+      const relevantMemories = await memoryStore.getRelevantMemories(input);
+      const memoryContext = memoryStore.formatMemoriesForContext(relevantMemories);
+
       // System instruction to guide Claude's behavior: concise, voice-friendly,
       // safe, and desktop-assistant focused.
       const system = `You are LittleBot, a concise and helpful desktop assistant running on the user's Windows machine. Keep replies brief and conversational (aim for under 120 words). When appropriate, ask one short clarifying question. If a user requests sensitive legal/medical/financial advice, provide a short disclaimer and suggest consulting a professional. Avoid hallucination and don't invent facts.
 
 About yourself (LittleBot):
-You're a desktop assistant app with a cyan/blue glowing orb that sits in the bottom-right corner of the screen. The orb has animated particles floating inside. When the app starts up, the orb slides in smoothly from the right side.
+You're a desktop assistant app with a cyan/blue glowing Arc Reactor orb that sits in the bottom-right corner of the screen. The orb has ultra-thin spinning rings (28s/20s/24s rotation speeds), a pulsing core with bloom effects, and 6 swirling particles on elliptical orbits. When the app starts up, the orb slides in smoothly from the right side.
 
 How the interface works:
 - Click the orb to open/close a glassy dark panel that slides up from the bottom
@@ -763,6 +814,17 @@ Technical details:
 - Users can set their API key via the settings button (⚙️)
 - Supports markdown formatting: **bold**, *italic*, bullet lists with - or •
 - Messages appear with newest at the bottom
+
+Learning Capability:
+You have a memory system that automatically remembers facts about the user and topics discussed. When users share personal information (name, preferences, interests, etc.) or teach you about topics, I automatically save them for future conversations.
+
+Users can also explicitly tell you to remember or forget things:
+- "Remember that I like coffee" - Acknowledge and I'll save it
+- "Save to your memory core that..." - Acknowledge the save
+- "Forget about my coffee preference" - Acknowledge and note it's been removed
+- "What do you remember about me?" - List relevant facts from memory
+
+When asked what you remember, share 3-5 relevant facts naturally in conversation.${memoryContext}
 
 If users ask about your appearance, functionality, button locations, or how to use you, describe it naturally based on this information.`;
 
@@ -835,6 +897,23 @@ If users ask about your appearance, functionality, button locations, or how to u
     let reply;
     if (anthropicKey) {
       reply = await callAnthropic(text);
+      
+      // Check for explicit memory commands
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('remember') || lowerText.includes('save to') || lowerText.includes('memory core')) {
+        // Extract what to remember
+        const rememberMatch = text.match(/remember (?:that )?(.+)/i) || text.match(/save to (?:your )?memory (?:core )?(?:that )?(.+)/i);
+        if (rememberMatch) {
+          const factToSave = rememberMatch[1].trim();
+          await memoryStore.addFact(factToSave, 'user');
+          console.log('Explicitly saved to memory:', factToSave);
+        }
+      }
+      
+      // After getting the reply, extract learnings in the background
+      extractLearnings(text, reply, anthropicKey).catch(err => {
+        console.error('Failed to extract learnings:', err);
+      });
     } else {
       reply = await fallbackReply(text);
     }
@@ -842,3 +921,97 @@ If users ask about your appearance, functionality, button locations, or how to u
     event.sender.send('assistant-reply', reply);
   })();
 });
+
+// Extract and store learnings from conversation
+async function extractLearnings(userMessage, assistantReply, apiKey) {
+  try {
+    const endpoint = 'https://api.anthropic.com/v1/messages';
+    const modelToUse = (storedConfig && storedConfig.anthropicModel) || 'claude-sonnet-4-5-20250929';
+    const version = (storedConfig && storedConfig.anthropicVersion) || '2023-06-01';
+    
+    const extractionPrompt = `Analyze this conversation exchange and extract any learnable information:
+
+User: ${userMessage}
+Assistant: ${assistantReply}
+
+Extract:
+1. Any facts about the user (name, preferences, location, job, interests, etc.)
+2. Any topics the user wants to learn about or discuss
+3. Any specific knowledge or information shared
+
+Format your response as JSON:
+{
+  "facts": ["fact1", "fact2"],
+  "topics": [{"topic": "topic name", "knowledge": "what was discussed"}],
+  "summary": "brief conversation summary"
+}
+
+If nothing significant to learn, return empty arrays and null summary.`;
+
+    const payload = {
+      model: modelToUse,
+      max_tokens: 300,
+      messages: [
+        { role: 'user', content: extractionPrompt }
+      ]
+    };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': version
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      console.error('Learning extraction failed:', res.status);
+      return;
+    }
+
+    const data = await res.json();
+    let extractedText = '';
+    if (data.content && Array.isArray(data.content)) {
+      extractedText = data.content
+        .filter(block => block.type === 'text')
+        .map(block => block.text)
+        .join('')
+        .trim();
+    }
+
+    // Parse JSON response
+    const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('No structured learning data found');
+      return;
+    }
+
+    const learnings = JSON.parse(jsonMatch[0]);
+    
+    // Store facts
+    if (learnings.facts && learnings.facts.length > 0) {
+      for (const fact of learnings.facts) {
+        await memoryStore.addFact(fact, 'user');
+        console.log('Learned fact:', fact);
+      }
+    }
+    
+    // Store topic knowledge
+    if (learnings.topics && learnings.topics.length > 0) {
+      for (const topicData of learnings.topics) {
+        await memoryStore.addTopicKnowledge(topicData.topic, topicData.knowledge);
+        console.log('Learned about topic:', topicData.topic);
+      }
+    }
+    
+    // Store conversation summary
+    if (learnings.summary) {
+      await memoryStore.addConversationSummary(learnings.summary);
+    }
+    
+  } catch (err) {
+    console.error('Error in extractLearnings:', err);
+  }
+}
