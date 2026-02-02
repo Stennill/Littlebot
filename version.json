@@ -1,8 +1,20 @@
 {
-  "version": "1.2.2",
+  "version": "1.2.3",
   "codename": "Arc Reactor",
   "buildDate": "2026-02-02",
   "changelog": [
+    {
+      "version": "1.2.3",
+      "date": "2026-02-02",
+      "name": "Natural Memory Commands",
+      "changes": [
+        "Expanded memory save triggers to accept casual language",
+        "Added patterns: 'keep in mind', 'make a note', 'don't forget', 'write down', 'store this', 'log that'",
+        "Users can now save to memory naturally without specific phrases",
+        "Improved pattern matching with 9 different trigger variations",
+        "Added validation to avoid saving questions or very short fragments"
+      ]
+    },
     {
       "version": "1.2.2",
       "date": "2026-02-02",

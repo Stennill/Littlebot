@@ -1037,15 +1037,34 @@ Current system time: ${currentTime}${memoryContext}${versionContext}`;
     if (anthropicKey) {
       reply = await callAnthropic(text);
       
-      // Check for explicit memory commands
+      // Check for explicit memory commands (expanded patterns for natural language)
       const lowerText = text.toLowerCase();
-      if (lowerText.includes('remember') || lowerText.includes('save to') || lowerText.includes('memory core')) {
-        // Extract what to remember
-        const rememberMatch = text.match(/remember (?:that )?(.+)/i) || text.match(/save to (?:your )?memory (?:core )?(?:that )?(.+)/i);
-        if (rememberMatch) {
-          const factToSave = rememberMatch[1].trim();
-          await memoryStore.addFact(factToSave, 'user');
-          console.log('Explicitly saved to memory:', factToSave);
+      
+      // More flexible memory save triggers
+      const memoryTriggers = [
+        /remember (?:that )?(.+)/i,
+        /save (?:to (?:your )?(?:memory|memory core) )?(?:that )?(.+)/i,
+        /keep (?:in mind |track of )?(?:that )?(.+)/i,
+        /(?:make a |take a )?note (?:that )?(.+)/i,
+        /don'?t forget (?:that )?(.+)/i,
+        /write (?:down |this down )?(?:that )?(.+)/i,
+        /store (?:in memory |this )?(?:that )?(.+)/i,
+        /log (?:that )?(.+)/i,
+        /add to (?:your )?(?:memory|notes) (?:that )?(.+)/i
+      ];
+      
+      let savedToMemory = false;
+      for (const pattern of memoryTriggers) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const factToSave = match[1].trim();
+          // Avoid saving if it's too short or just a question
+          if (factToSave.length > 3 && !factToSave.endsWith('?')) {
+            await memoryStore.addFact(factToSave, 'user');
+            console.log('Explicitly saved to memory:', factToSave);
+            savedToMemory = true;
+            break;
+          }
         }
       }
       
