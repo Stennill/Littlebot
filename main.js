@@ -1163,7 +1163,20 @@ If nothing significant to learn, return empty arrays and null summary.`;
       return;
     }
 
-    const learnings = JSON.parse(jsonMatch[0]);
+    // Clean up potential JSON issues (trailing commas, etc.)
+    let jsonString = jsonMatch[0];
+    
+    // Remove trailing commas before closing brackets/braces
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, '$1');
+    
+    let learnings;
+    try {
+      learnings = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error('Failed to parse learning JSON:', parseError.message);
+      console.log('Problematic JSON:', jsonString.substring(0, 200));
+      return;
+    }
     
     // Store facts
     if (learnings.facts && learnings.facts.length > 0) {
