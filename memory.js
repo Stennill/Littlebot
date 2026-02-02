@@ -278,6 +278,62 @@ class MemoryStore {
     // Assuming the app is running from the repo directory
     return path.join(__dirname);
   }
+
+  /**
+   * Check if GitHub memory is newer than local memory
+   */
+  async isGitHubMemoryNewer() {
+    try {
+      const repoPath = this.getRepoPath();
+      const githubMemoryPath = path.join(repoPath, 'littlebot-memory.json');
+      
+      // Check if both files exist
+      try {
+        await fs.access(this.memoryPath);
+        await fs.access(githubMemoryPath);
+      } catch {
+        // One or both files don't exist
+        return false;
+      }
+      
+      // Get file stats
+      const localStats = await fs.stat(this.memoryPath);
+      const githubStats = await fs.stat(githubMemoryPath);
+      
+      // Compare modification times
+      return githubStats.mtime > localStats.mtime;
+    } catch (err) {
+      console.error('Error checking memory file timestamps:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Auto-update from GitHub if repository version is newer
+   */
+  async autoUpdateIfNewer() {
+    try {
+      const isNewer = await this.isGitHubMemoryNewer();
+      
+      if (isNewer) {
+        console.log('GitHub memory is newer - auto-updating...');
+        const result = await this.pullFromGitHub(this.getRepoPath());
+        
+        if (result.success) {
+          console.log('✓ Memory auto-updated from GitHub');
+          return { updated: true, message: 'Memory updated from GitHub' };
+        } else {
+          console.error('Failed to auto-update memory:', result.error);
+          return { updated: false, error: result.error };
+        }
+      }
+      
+      return { updated: false, message: 'Local memory is current' };
+    } catch (err) {
+      console.error('Error in auto-update check:', err);
+      return { updated: false, error: err.message };
+    }
+  }
 }
 
 module.exports = new MemoryStore();

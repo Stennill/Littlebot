@@ -1,8 +1,20 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "codename": "Arc Reactor",
   "buildDate": "2026-02-02",
   "changelog": [
+    {
+      "version": "1.2.2",
+      "date": "2026-02-02",
+      "name": "Smart Auto-Update",
+      "changes": [
+        "Added automatic detection of newer memory files from GitHub",
+        "Auto-updates local memory if GitHub version is newer",
+        "Checks on startup and every 30 minutes",
+        "Prevents overwriting newer data with older data",
+        "Smart sync: pulls if GitHub is newer, pushes if local is current"
+      ]
+    },
     {
       "version": "1.2.1",
       "date": "2026-02-02",

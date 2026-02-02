@@ -258,23 +258,37 @@ app.whenReady().then(async () => {
   console.log('Config path:', getConfigPath());
   console.log('History path:', getHistoryPath());
   console.log('========================');
+  
+  // Check if GitHub memory is newer and auto-update
+  const updateResult = await memoryStore.autoUpdateIfNewer();
+  if (updateResult.updated) {
+    console.log('Memory was updated from GitHub on startup');
+  }
+  
   createWindow();
   
-  // Auto-sync memory to GitHub every 30 minutes
+  // Auto-sync and auto-update check every 30 minutes
   const AUTO_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutes in milliseconds
   setInterval(async () => {
     try {
-      const repoPath = memoryStore.getRepoPath();
-      const result = await memoryStore.syncWithGitHub(repoPath);
-      if (result.success) {
-        console.log(`[Auto-sync] Memory synced to GitHub at ${new Date().toLocaleTimeString()}`);
+      // First check if we should pull updates
+      const updateCheck = await memoryStore.autoUpdateIfNewer();
+      if (updateCheck.updated) {
+        console.log(`[Auto-update] Memory updated from GitHub at ${new Date().toLocaleTimeString()}`);
+      } else {
+        // Only sync if we didn't just pull
+        const repoPath = memoryStore.getRepoPath();
+        const result = await memoryStore.syncWithGitHub(repoPath);
+        if (result.success) {
+          console.log(`[Auto-sync] Memory synced to GitHub at ${new Date().toLocaleTimeString()}`);
+        }
       }
     } catch (err) {
-      console.error('[Auto-sync] Failed:', err);
+      console.error('[Auto-sync/update] Failed:', err);
     }
   }, AUTO_SYNC_INTERVAL);
   
-  console.log('Auto-sync enabled: Memory will sync to GitHub every 30 minutes');
+  console.log('Auto-sync/update enabled: Checks GitHub every 30 minutes');
 });
 
 app.on('window-all-closed', () => {

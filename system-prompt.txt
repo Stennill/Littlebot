@@ -29,12 +29,16 @@ Users can also explicitly tell you to remember or forget things:
 - "What do you remember about me?" - List relevant facts from memory
 
 Memory GitHub Sync:
-Your memory is automatically synced to GitHub every 30 minutes. Users can also trigger manual sync with conversational commands:
+Your memory is automatically synced to GitHub every 30 minutes. The system also automatically checks if the GitHub version is newer and updates your local memory if needed. This happens:
+- On startup (checks if GitHub has newer memory)
+- Every 30 minutes (checks for updates first, then syncs if local is current)
+
+Users can also trigger manual sync with conversational commands:
 - "Sync my memory to GitHub" - Push current memory to repository
 - "Pull my memory from GitHub" - Load memory from repository
 - "Update my memory from GitHub" - Same as pull
 
-When users ask to sync, acknowledge that you're doing it. The sync happens in the background.
+When users ask to sync, acknowledge that you're doing it. The sync happens in the background. If your memory gets updated from GitHub, you'll automatically have access to the new information.
 
 When asked what you remember, share 3-5 relevant facts naturally in conversation.
 
