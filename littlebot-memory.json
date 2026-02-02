@@ -1,24 +1,6 @@
 {
   "facts": [
     {
-      "text": "User was interacting with the system at 11:26 AM on their local time",
-      "category": "user",
-      "timestamp": 1770049622753,
-      "id": 1770049622753.475
-    },
-    {
-      "text": "User is interested in how the AI assistant accesses time information",
-      "category": "user",
-      "timestamp": 1770049648453,
-      "id": 1770049648453.8835
-    },
-    {
-      "text": "User may be the developer of an application called 'LittleBot' (uncertain, assistant asking for clarification)",
-      "category": "user",
-      "timestamp": 1770049648455,
-      "id": 1770049648455.8865
-    },
-    {
       "text": "User is a developer/programmer",
       "category": "user",
       "timestamp": 1770049700949,
@@ -599,6 +581,24 @@
       "category": "user",
       "timestamp": 1770065092149,
       "id": 1770065092149.3555
+    },
+    {
+      "text": "User has multiple devices (PC and laptop) that they want to sync",
+      "category": "user",
+      "timestamp": 1770065255483,
+      "id": 1770065255483.356
+    },
+    {
+      "text": "User is using a system called 'LittleBot' that stores memory in %APPDATA%/LittleBot/user_memory.json",
+      "category": "user",
+      "timestamp": 1770065255488,
+      "id": 1770065255488.5818
+    },
+    {
+      "text": "User has access to GitHub",
+      "category": "user",
+      "timestamp": 1770065255492,
+      "id": 1770065255492.8042
     }
   ],
   "topics": {
@@ -1063,25 +1063,59 @@
         }
       ],
       "lastAccessed": 1770065092150
+    },
+    "github and version control": {
+      "name": "GitHub and version control",
+      "entries": [
+        {
+          "text": "User is interested in using GitHub to sync their LittleBot memory file between devices",
+          "timestamp": 1770065255495
+        }
+      ],
+      "lastAccessed": 1770065255495
+    },
+    "file synchronization across devices": {
+      "name": "File synchronization across devices",
+      "entries": [
+        {
+          "text": "User wants to sync data between their PC and laptop, considering git-based approach",
+          "timestamp": 1770065255497
+        }
+      ],
+      "lastAccessed": 1770065255497
+    },
+    "system updates - v1.2.2 'arc reactor'": {
+      "name": "System Updates - v1.2.2 'Arc Reactor'",
+      "entries": [
+        {
+          "text": "The assistant's system now has smart auto-update functionality that checks GitHub for newer memory files on startup and every 30 minutes. It compares timestamps to prevent overwriting newer data with older data, only syncing when appropriate.",
+          "timestamp": 1770065616679
+        }
+      ],
+      "lastAccessed": 1770065616679
+    },
+    "github memory synchronization system": {
+      "name": "GitHub Memory Synchronization System",
+      "entries": [
+        {
+          "text": "The assistant has a memory synchronization feature that checks GitHub for newer memory versions. It automatically syncs: (1) every time the assistant starts up, and (2) every 30 minutes during runtime. The sync uses timestamp comparison to determine which version is newer and only updates if GitHub has a more recent file.",
+          "timestamp": 1770065663013
+        }
+      ],
+      "lastAccessed": 1770065663013
+    },
+    "smart sync logic/system architecture": {
+      "name": "Smart sync logic/system architecture",
+      "entries": [
+        {
+          "text": "User inquired about how a smart sync system works. The system uses timestamp-based synchronization between local storage and GitHub, checking every 30 minutes and on startup. It compares lastModified timestamps to determine whether to pull from GitHub (if remote is newer) or push to GitHub (if local is current), preventing data loss across devices.",
+          "timestamp": 1770065698133
+        }
+      ],
+      "lastAccessed": 1770065698133
     }
   },
   "conversations": [
-    {
-      "summary": "User confirmed their identity as LittleBot's developer. The assistant demonstrated existing knowledge about the user's work preferences (Notion usage, preference for high-level overviews), recent project work (Arc Reactor v1.2.0), and ongoing development activities.",
-      "timestamp": 1770064274228
-    },
-    {
-      "summary": "User questioned whether the assistant remembered their name. Assistant acknowledged not having the user's name but recalled other details about them (developer role, LittleBot project, Notion usage, preference for high-level summaries) and asked what to call them.",
-      "timestamp": 1770064288280
-    },
-    {
-      "summary": "User expressed frustration that the assistant doesn't remember their name from previous conversations. The assistant acknowledged the memory gap and apologized, requesting the user remind them of their name. No actual name was provided in this exchange. Timestamp: Monday, February 2, 2026 - 3:31 PM",
-      "timestamp": 1770064312247
-    },
-    {
-      "summary": "User expressed desire for full conversation retention capabilities beyond just fact extraction. Assistant proposed technical implementation strategies for persistent conversation history and asked about retention policy preferences.",
-      "timestamp": 1770064361788
-    },
     {
       "summary": "User set a preference for indefinite conversation history retention, choosing to keep all chat history permanently for full context building over time.",
       "timestamp": 1770064410312
@@ -1105,6 +1139,22 @@
     {
       "summary": "User is collaborating with a Developer AI to implement real-time memory update functionality for the Assistant, allowing dynamic knowledge retention without requiring restarts.",
       "timestamp": 1770065092150
+    },
+    {
+      "summary": "User inquired about pushing LittleBot's memory file to GitHub for cross-device synchronization. Assistant clarified they cannot execute commands directly but offered to help create an automated script for git operations.",
+      "timestamp": 1770065255498
+    },
+    {
+      "summary": "User inquired about system updates. Assistant explained the new v1.2.2 smart auto-update feature that prevents data loss by intelligently syncing with GitHub based on timestamps.",
+      "timestamp": 1770065616681
+    },
+    {
+      "summary": "User requested to test the GitHub memory sync feature. Assistant explained the automatic synchronization system that checks for newer memory files on GitHub based on timestamps, running both at startup and every 30 minutes.",
+      "timestamp": 1770065663014
+    },
+    {
+      "summary": "User asked for explanation of smart sync logic. Discussion covered a timestamp-based bidirectional sync system that prevents data overwrites by comparing local and GitHub versions, automatically pulling or pushing as needed.",
+      "timestamp": 1770065698139
     }
   ]
 }
