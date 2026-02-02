@@ -13,6 +13,90 @@ let memoryWindow = null;
 let storedConfig = {};
 let storedApiKey = null;
 let activeSessionId = null; // Track current active session ID
+let systemPrompt = null; // Cached system prompt
+let versionInfo = null; // Cached version information
+
+// Load version information from file
+async function loadVersionInfo() {
+  try {
+    const versionPath = path.join(__dirname, 'version.json');
+    const versionData = await fs.readFile(versionPath, 'utf8');
+    versionInfo = JSON.parse(versionData);
+    console.log(`LittleBot ${versionInfo.version} (${versionInfo.codename}) loaded`);
+    return versionInfo;
+  } catch (err) {
+    console.error('Failed to load version info:', err);
+    // Fallback version
+    versionInfo = { version: '1.0.0', codename: 'Unknown', changelog: [] };
+    return versionInfo;
+  }
+}
+
+// Load system prompt from file
+async function loadSystemPrompt() {
+  try {
+    const promptPath = path.join(__dirname, 'system-prompt.txt');
+    systemPrompt = await fs.readFile(promptPath, 'utf8');
+    console.log('System prompt loaded successfully');
+    return systemPrompt;
+  } catch (err) {
+    console.error('Failed to load system prompt:', err);
+    // Fallback to basic prompt
+    systemPrompt = 'You are LittleBot, a helpful desktop assistant.';
+    return systemPrompt;
+  }
+}
+
+// Save system prompt to file (with backup)
+async function saveSystemPrompt(newPrompt) {
+  try {
+    const promptPath = path.join(__dirname, 'system-prompt.txt');
+    const backupPath = path.join(__dirname, 'system-prompt.backup');
+    
+    // Create backup if file exists
+    try {
+      const currentPrompt = await fs.readFile(promptPath, 'utf8');
+      await fs.writeFile(backupPath, currentPrompt, 'utf8');
+    } catch (err) {
+      // No existing file, skip backup
+    }
+    
+    // Validate prompt contains key markers
+    const lowerPrompt = newPrompt.toLowerCase();
+    if (!lowerPrompt.includes('littlebot') || !lowerPrompt.includes('arc reactor')) {
+      throw new Error('System prompt validation failed: missing key identity markers');
+    }
+    
+    // Save new prompt
+    await fs.writeFile(promptPath, newPrompt, 'utf8');
+    systemPrompt = newPrompt;
+    return true;
+  } catch (err) {
+    console.error('Failed to save system prompt:', err);
+    throw err;
+  }
+}
+
+// Get current system time formatted
+function getSystemTime() {
+  const now = new Date();
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  const dayName = days[now.getDay()];
+  const monthName = months[now.getMonth()];
+  const date = now.getDate();
+  const year = now.getFullYear();
+  
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
+  return `${dayName}, ${monthName} ${date}, ${year} - ${hours}:${minutes} ${ampm} ${timezone}`;
+}
 
 function createMemoryWindow() {
   if (memoryWindow) {
@@ -167,7 +251,10 @@ app.commandLine.appendSwitch('enable-features', 'NetworkService');
 
 app.whenReady().then(async () => {
   await readConfig();
+  await loadSystemPrompt();
+  await loadVersionInfo();
   console.log('=== LittleBot Starting ===');
+  console.log(`Version: ${versionInfo?.version} (${versionInfo?.codename})`);
   console.log('Config path:', getConfigPath());
   console.log('History path:', getHistoryPath());
   console.log('========================');
@@ -426,6 +513,43 @@ ipcMain.handle('memory-add-topic', async (event, topic, knowledge) => {
 
 ipcMain.handle('memory-clear', async () => {
   return await memoryStore.clearAll();
+});
+
+// GitHub memory sync handlers
+ipcMain.handle('memory-sync-github', async () => {
+  const repoPath = memoryStore.getRepoPath();
+  const result = await memoryStore.syncWithGitHub(repoPath);
+  return result;
+});
+
+ipcMain.handle('memory-pull-github', async () => {
+  const repoPath = memoryStore.getRepoPath();
+  const result = await memoryStore.pullFromGitHub(repoPath);
+  return result;
+});
+
+// System prompt management handlers
+ipcMain.handle('get-system-prompt', async () => {
+  return systemPrompt;
+});
+
+ipcMain.handle('set-system-prompt', async (event, newPrompt) => {
+  try {
+    await saveSystemPrompt(newPrompt);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-prompt-lock-status', async () => {
+  return storedConfig.systemPromptLocked || false;
+});
+
+ipcMain.handle('set-prompt-lock-status', async (event, locked) => {
+  storedConfig.systemPromptLocked = locked;
+  await writeConfig(storedConfig);
+  return true;
 });
 
 
@@ -792,41 +916,26 @@ ipcMain.on('assistant-message', (event, text) => {
       const relevantMemories = await memoryStore.getRelevantMemories(input);
       const memoryContext = memoryStore.formatMemoriesForContext(relevantMemories);
 
-      // System instruction to guide Claude's behavior: concise, voice-friendly,
-      // safe, and desktop-assistant focused.
-      const system = `You are LittleBot, a concise and helpful desktop assistant running on the user's Windows machine. Keep replies brief and conversational (aim for under 120 words). When appropriate, ask one short clarifying question. If a user requests sensitive legal/medical/financial advice, provide a short disclaimer and suggest consulting a professional. Avoid hallucination and don't invent facts.
+      // Get current system time
+      const currentTime = getSystemTime();
 
-About yourself (LittleBot):
-You're a desktop assistant app with a cyan/blue glowing Arc Reactor orb that sits in the bottom-right corner of the screen. The orb has ultra-thin spinning rings (28s/20s/24s rotation speeds), a pulsing core with bloom effects, and 6 swirling particles on elliptical orbits. When the app starts up, the orb slides in smoothly from the right side.
+      // Build version context
+      let versionContext = '';
+      if (versionInfo) {
+        const latestChanges = versionInfo.changelog[0];
+        versionContext = `
 
-How the interface works:
-- Click the orb to open/close a glassy dark panel that slides up from the bottom
-- The panel shows the conversation with messages at the top
-- At the bottom there's an input field where users type (borderless, glassy style)
-- Two buttons are in the bottom-right corner:
-  * Send button (→) with a cyan/blue gradient - right next to the input field
-  * Settings button (⚙️) in gray - furthest to the right
-- The panel auto-hides after 60 seconds of inactivity, but clicking the orb brings it back
+Current Version: ${versionInfo.version} "${versionInfo.codename}" (Built: ${versionInfo.buildDate})
+Latest Changes (${latestChanges.name}):
+${latestChanges.changes.map(c => `- ${c}`).join('\n')}
 
-Technical details:
-- Text-only interface (no voice or microphone features)
-- Powered by Anthropic's Claude AI (claude-sonnet-4-5-20250929 model)
-- Users can set their API key via the settings button (⚙️)
-- Supports markdown formatting: **bold**, *italic*, bullet lists with - or •
-- Messages appear with newest at the bottom
+Note: You can see your current version and all changes made to your program. If asked about your version, capabilities, or recent updates, refer to this information.`;
+      }
 
-Learning Capability:
-You have a memory system that automatically remembers facts about the user and topics discussed. When users share personal information (name, preferences, interests, etc.) or teach you about topics, I automatically save them for future conversations.
+      // Build system prompt from loaded file plus dynamic context
+      const system = `${systemPrompt}
 
-Users can also explicitly tell you to remember or forget things:
-- "Remember that I like coffee" - Acknowledge and I'll save it
-- "Save to your memory core that..." - Acknowledge the save
-- "Forget about my coffee preference" - Acknowledge and note it's been removed
-- "What do you remember about me?" - List relevant facts from memory
-
-When asked what you remember, share 3-5 relevant facts naturally in conversation.${memoryContext}
-
-If users ask about your appearance, functionality, button locations, or how to use you, describe it naturally based on this information.`;
+Current system time: ${currentTime}${memoryContext}${versionContext}`;
 
       const modelToUse = (storedConfig && storedConfig.anthropicModel) || 'claude-sonnet-4-5-20250929';
       const version = (storedConfig && storedConfig.anthropicVersion) || '2023-06-01';

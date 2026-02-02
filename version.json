@@ -1,0 +1,80 @@
+{
+  "version": "1.2.0",
+  "codename": "Arc Reactor",
+  "buildDate": "2026-02-02",
+  "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-02-02",
+      "name": "Arc Reactor Update",
+      "changes": [
+        "Replaced blinking eye orb with Arc Reactor HUD design",
+        "Added spinning rings (28s/20s/24s), pulsing core, and 6 orbiting particles",
+        "Updated panel to cyan theme matching Arc Reactor colors",
+        "Implemented conversational memory learning system",
+        "Added automatic fact/topic extraction from conversations",
+        "Integrated system time into every response",
+        "Created system prompt protection with validation and lock toggle",
+        "Added auto-backup system for system prompt",
+        "Enhanced settings UI with prompt editor"
+      ],
+      "technicalDetails": {
+        "newFiles": [
+          "memory.js - MemoryStore class with JSON persistence",
+          "system-prompt.txt - Core identity and instructions",
+          "version.json - Version tracking and changelog"
+        ],
+        "modifiedFiles": [
+          "main.js - Added memory system, time integration, prompt protection",
+          "preload.js - Added system prompt management functions",
+          "renderer/index.html - Arc Reactor SVG with CSS animations",
+          "renderer/styles.css - Cyan theme with glassmorphism effects",
+          "renderer/settings.html - System prompt editor section",
+          "renderer/settings.js - Prompt management logic"
+        ],
+        "features": {
+          "memory": {
+            "facts": 100,
+            "topicsPerEntry": 20,
+            "conversationSummaries": 10,
+            "retrievalMethod": "keyword-based matching"
+          },
+          "visualDesign": {
+            "orbType": "Arc Reactor HUD",
+            "colorScheme": "Cyan (#00d6ff, #7cf3ff, #2a6bff)",
+            "animations": "Pure CSS (no JavaScript)",
+            "accessibility": "prefers-reduced-motion support"
+          },
+          "security": {
+            "promptValidation": "Requires 'littlebot' and 'arc reactor' keywords",
+            "autoBackup": "system-prompt.backup created before changes",
+            "lockToggle": "Prevents accidental modifications"
+          }
+        }
+      }
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-01-15",
+      "name": "Initial Blinking Eye Design",
+      "changes": [
+        "Original blinking eye orb with JavaScript animation",
+        "Basic panel layout with semi-transparent design",
+        "Core Electron desktop framework setup",
+        "Claude API integration (claude-sonnet-4-5-20250929)",
+        "Conversation history management"
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-01-01",
+      "name": "Initial Release",
+      "changes": [
+        "Basic desktop assistant functionality",
+        "Frameless always-on-top window",
+        "API key configuration",
+        "Simple text-based interface"
+      ]
+    }
+  ]
+}

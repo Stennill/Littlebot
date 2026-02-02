@@ -27,4 +27,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ,onWakeWordStatus: (cb) => ipcRenderer.on('wake-word-status', (event, data) => cb(data))
   ,stopSpeechOutput: () => ipcRenderer.invoke('stop-speech-output')
   ,onStopTTS: (cb) => ipcRenderer.on('stop-tts', () => cb())
+  // System prompt management
+  ,getSystemPrompt: () => ipcRenderer.invoke('get-system-prompt')
+  ,setSystemPrompt: (prompt) => ipcRenderer.invoke('set-system-prompt', prompt)
+  ,getPromptLockStatus: () => ipcRenderer.invoke('get-prompt-lock-status')
+  ,setPromptLockStatus: (locked) => ipcRenderer.invoke('set-prompt-lock-status', locked)
+  // Memory GitHub sync
+  ,memorySyncGitHub: () => ipcRenderer.invoke('memory-sync-github')
+  ,memoryPullGitHub: () => ipcRenderer.invoke('memory-pull-github')
 });

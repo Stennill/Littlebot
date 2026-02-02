@@ -14,6 +14,12 @@ const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 const closeBtn = document.getElementById('closeBtn');
 const status = document.getElementById('status');
 const probeResult = document.getElementById('probeResult');
+const systemPromptInput = document.getElementById('systemPromptInput');
+const promptLockToggle = document.getElementById('promptLockToggle');
+const savePromptBtn = document.getElementById('savePromptBtn');
+const syncMemoryBtn = document.getElementById('syncMemoryBtn');
+const pullMemoryBtn = document.getElementById('pullMemoryBtn');
+const memoryStatus = document.getElementById('memoryStatus');
 
 // Load settings on startup
 async function loadSettings() {
@@ -34,10 +40,36 @@ async function loadSettings() {
       anthropicVersionInput.value = '2023-06-01';
       anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
     }
+    
+    // Load system prompt
+    const prompt = await window.electronAPI.getSystemPrompt();
+    if (prompt) systemPromptInput.value = prompt;
+    
+    // Load prompt lock status
+    const locked = await window.electronAPI.getPromptLockStatus();
+    promptLockToggle.checked = locked;
+    updatePromptLock(locked);
+    
   } catch (e) {
     console.error('Failed to load settings:', e);
     anthropicVersionInput.value = '2023-06-01';
     anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
+  }
+}
+
+function updatePromptLock(locked) {
+  systemPromptInput.disabled = locked;
+  savePromptBtn.disabled = locked;
+  if (locked) {
+    systemPromptInput.style.opacity = '0.6';
+    systemPromptInput.style.cursor = 'not-allowed';
+    savePromptBtn.style.opacity = '0.6';
+    savePromptBtn.style.cursor = 'not-allowed';
+  } else {
+    systemPromptInput.style.opacity = '1';
+    systemPromptInput.style.cursor = 'text';
+    savePromptBtn.style.opacity = '1';
+    savePromptBtn.style.cursor = 'pointer';
   }
 }
 
@@ -127,6 +159,97 @@ clearHistoryBtn.addEventListener('click', async () => {
       status.textContent = '✗ Failed to clear history';
       status.className = 'status error';
     }
+  }
+});
+
+// Save system prompt
+savePromptBtn.addEventListener('click', async () => {
+  if (promptLockToggle.checked) {
+    status.textContent = '✗ System prompt is locked';
+    status.className = 'status error';
+    setTimeout(() => {
+      status.className = 'status hidden';
+    }, 2000);
+    return;
+  }
+  
+  try {
+    const result = await window.electronAPI.setSystemPrompt(systemPromptInput.value);
+    if (result.success) {
+      status.textContent = '✓ System prompt saved (backup created)';
+      status.className = 'status success';
+    } else {
+      status.textContent = '✗ ' + result.error;
+      status.className = 'status error';
+    }
+    setTimeout(() => {
+      status.className = 'status hidden';
+    }, 3000);
+  } catch (e) {
+    status.textContent = '✗ Failed to save system prompt';
+    status.className = 'status error';
+  }
+});
+
+// Prompt lock toggle
+promptLockToggle.addEventListener('change', async () => {
+  const locked = promptLockToggle.checked;
+  await window.electronAPI.setPromptLockStatus(locked);
+  updatePromptLock(locked);
+  
+  status.textContent = locked ? '🔒 System prompt locked' : '🔓 System prompt unlocked';
+  status.className = 'status success';
+  setTimeout(() => {
+    status.className = 'status hidden';
+  }, 2000);
+});
+
+// Memory GitHub sync
+syncMemoryBtn.addEventListener('click', async () => {
+  try {
+    memoryStatus.textContent = 'Syncing memory to GitHub repository...';
+    memoryStatus.className = 'status';
+    
+    const result = await window.electronAPI.memorySyncGitHub();
+    
+    if (result.success) {
+      memoryStatus.textContent = `✓ Memory synced to repository: ${result.path}`;
+      memoryStatus.className = 'status success';
+    } else {
+      memoryStatus.textContent = `✗ Failed to sync: ${result.error}`;
+      memoryStatus.className = 'status error';
+    }
+    
+    setTimeout(() => {
+      memoryStatus.className = 'status hidden';
+    }, 5000);
+  } catch (e) {
+    memoryStatus.textContent = '✗ Failed to sync memory';
+    memoryStatus.className = 'status error';
+  }
+});
+
+pullMemoryBtn.addEventListener('click', async () => {
+  try {
+    memoryStatus.textContent = 'Pulling memory from GitHub repository...';
+    memoryStatus.className = 'status';
+    
+    const result = await window.electronAPI.memoryPullGitHub();
+    
+    if (result.success) {
+      memoryStatus.textContent = '✓ Memory pulled from GitHub and loaded';
+      memoryStatus.className = 'status success';
+    } else {
+      memoryStatus.textContent = `✗ Failed to pull: ${result.error}`;
+      memoryStatus.className = 'status error';
+    }
+    
+    setTimeout(() => {
+      memoryStatus.className = 'status hidden';
+    }, 5000);
+  } catch (e) {
+    memoryStatus.textContent = '✗ Failed to pull memory';
+    memoryStatus.className = 'status error';
   }
 });
 

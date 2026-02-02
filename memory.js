@@ -215,6 +215,69 @@ class MemoryStore {
     
     return context;
   }
+
+  /**
+   * Sync memory with GitHub repository
+   */
+  async syncWithGitHub(repoPath) {
+    if (!this.loaded) await this.load();
+    
+    try {
+      const { spawn } = require('child_process');
+      const githubMemoryPath = path.join(repoPath, 'littlebot-memory.json');
+      
+      // Copy current memory to repo
+      await fs.copyFile(this.memoryPath, githubMemoryPath);
+      
+      return { success: true, path: githubMemoryPath };
+    } catch (err) {
+      console.error('Failed to sync memory with GitHub:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Pull memory from GitHub repository
+   */
+  async pullFromGitHub(repoPath) {
+    try {
+      const githubMemoryPath = path.join(repoPath, 'littlebot-memory.json');
+      
+      // Check if file exists in repo
+      try {
+        await fs.access(githubMemoryPath);
+      } catch {
+        return { success: false, error: 'Memory file not found in repository' };
+      }
+      
+      // Backup current memory
+      const backupPath = this.memoryPath + '.backup';
+      try {
+        await fs.copyFile(this.memoryPath, backupPath);
+      } catch {
+        // No existing memory to backup
+      }
+      
+      // Copy from repo to user data
+      await fs.copyFile(githubMemoryPath, this.memoryPath);
+      
+      // Reload
+      await this.load();
+      
+      return { success: true, message: 'Memory pulled from GitHub' };
+    } catch (err) {
+      console.error('Failed to pull memory from GitHub:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Get the repository path
+   */
+  getRepoPath() {
+    // Assuming the app is running from the repo directory
+    return path.join(__dirname);
+  }
 }
 
 module.exports = new MemoryStore();
