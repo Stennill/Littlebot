@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>LittleBot Memory</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(145deg, #0a1423 0%, #1a2538 100%);
+      min-height: 100vh;
+      box-sizing: border-box;
+      color: #e2e8f0;
+    }
+    
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: rgba(10, 20, 35, 0.85);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 200, 255, 0.15), 0 0 0 0.5px rgba(124, 243, 255, 0.4) inset;
+      border: 0.5px solid rgba(124, 243, 255, 0.35);
+    }
+    
+    h2 {
+      margin: 0 0 8px 0;
+      color: rgba(124, 243, 255, 0.95);
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+    
+    .section {
+      margin-bottom: 28px;
+    }
+    
+    .section-title {
+      color: rgba(124, 243, 255, 0.9);
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 0.5px solid rgba(124, 243, 255, 0.2);
+    }
+    
+    .fact-item, .topic-item {
+      background: rgba(0, 50, 80, 0.3);
+      border: 0.5px solid rgba(124, 243, 255, 0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    
+    .fact-text {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .fact-meta {
+      color: rgba(124, 243, 255, 0.5);
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    
+    .topic-name {
+      color: rgba(124, 243, 255, 0.95);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    
+    .topic-entry {
+      color: rgba(255, 255, 255, 0.8);
+      margin: 4px 0;
+      padding-left: 12px;
+      border-left: 2px solid rgba(124, 243, 255, 0.3);
+    }
+    
+    .empty-state {
+      color: rgba(255, 255, 255, 0.4);
+      font-style: italic;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    
+    button {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 0.5px solid rgba(124, 243, 255, 0.4);
+      background: linear-gradient(135deg, rgba(0, 214, 255, 0.7) 0%, rgba(42, 107, 255, 0.7) 100%);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s;
+      font-family: inherit;
+      box-shadow: 0 3px 10px rgba(124, 243, 255, 0.25);
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+      background: linear-gradient(135deg, rgba(0, 214, 255, 0.9) 0%, rgba(42, 107, 255, 0.9) 100%);
+      box-shadow: 0 5px 16px rgba(124, 243, 255, 0.35);
+    }
+    
+    button.danger {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.7) 0%, rgba(185, 28, 28, 0.7) 100%);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+    
+    button.danger:hover {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.9) 100%);
+      box-shadow: 0 5px 16px rgba(239, 68, 68, 0.35);
+    }
+    
+    .stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-box {
+      flex: 1;
+      background: rgba(0, 70, 100, 0.3);
+      border: 0.5px solid rgba(124, 243, 255, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 24px;
+      font-weight: 700;
+      color: rgba(124, 243, 255, 0.95);
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🧠 LittleBot Memory</h2>
+    <p class="subtitle">Things I've learned from our conversations</p>
+    
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-number" id="factCount">0</div>
+        <div class="stat-label">Facts Learned</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="topicCount">0</div>
+        <div class="stat-label">Topics Discussed</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">📝 Facts About You</div>
+      <div id="factsContainer"></div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">📚 Topic Knowledge</div>
+      <div id="topicsContainer"></div>
+    </div>
+    
+    <div class="button-group">
+      <button id="refreshBtn">🔄 Refresh</button>
+      <button id="clearBtn" class="danger">🗑️ Clear All Memory</button>
+      <button id="closeBtn">Close</button>
+    </div>
+  </div>
+  
+  <script>
+    const factsContainer = document.getElementById('factsContainer');
+    const topicsContainer = document.getElementById('topicsContainer');
+    const factCount = document.getElementById('factCount');
+    const topicCount = document.getElementById('topicCount');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    
+    async function loadMemory() {
+      try {
+        const facts = await window.electronAPI.memoryGetAllFacts();
+        const topics = await window.electronAPI.memoryGetAllTopics();
+        
+        // Update stats
+        factCount.textContent = facts.length;
+        topicCount.textContent = Object.keys(topics).length;
+        
+        // Display facts
+        if (facts.length === 0) {
+          factsContainer.innerHTML = '<div class="empty-state">No facts learned yet. Share something about yourself!</div>';
+        } else {
+          factsContainer.innerHTML = facts.map(fact => {
+            const date = new Date(fact.timestamp).toLocaleDateString();
+            return `
+              <div class="fact-item">
+                <div class="fact-text">${escapeHtml(fact.text)}</div>
+                <div class="fact-meta">${fact.category} • ${date}</div>
+              </div>
+            `;
+          }).reverse().join('');
+        }
+        
+        // Display topics
+        const topicEntries = Object.entries(topics);
+        if (topicEntries.length === 0) {
+          topicsContainer.innerHTML = '<div class="empty-state">No topics discussed yet. Ask me to learn about something!</div>';
+        } else {
+          topicsContainer.innerHTML = topicEntries.map(([key, topicData]) => {
+            const entries = topicData.entries.map(entry => 
+              `<div class="topic-entry">${escapeHtml(entry.text)}</div>`
+            ).join('');
+            return `
+              <div class="topic-item">
+                <div class="topic-name">${escapeHtml(topicData.name)}</div>
+                ${entries}
+              </div>
+            `;
+          }).join('');
+        }
+        
+      } catch (err) {
+        console.error('Failed to load memory:', err);
+        factsContainer.innerHTML = '<div class="empty-state">Error loading memory</div>';
+        topicsContainer.innerHTML = '<div class="empty-state">Error loading memory</div>';
+      }
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    refreshBtn.addEventListener('click', () => {
+      loadMemory();
+    });
+    
+    clearBtn.addEventListener('click', async () => {
+      if (confirm('Are you sure you want to clear all learned memory? This cannot be undone.')) {
+        await window.electronAPI.memoryClear();
+        await loadMemory();
+      }
+    });
+    
+    closeBtn.addEventListener('click', () => {
+      window.close();
+    });
+    
+    // Load memory on start
+    loadMemory();
+  </script>
+</body>
+</html>

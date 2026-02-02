@@ -9,8 +9,7 @@ const { app } = require('electron');
 
 class MemoryStore {
   constructor() {
-    // Store memory in project directory so it can sync via GitHub
-    this.memoryPath = path.join(__dirname, 'littlebot-memory.json');
+    this.memoryPath = path.join(app.getPath('userData'), 'littlebot-memory.json');
     this.memories = {
       facts: [], // User facts: name, preferences, etc.
       topics: {}, // Topic-based knowledge
