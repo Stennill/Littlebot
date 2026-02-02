@@ -1,8 +1,20 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.1",
   "codename": "Arc Reactor",
   "buildDate": "2026-02-02",
   "changelog": [
+    {
+      "version": "1.2.1",
+      "date": "2026-02-02",
+      "name": "Auto-Sync Enhancement",
+      "changes": [
+        "Added conversational commands for GitHub memory sync",
+        "Implemented automatic memory sync every 30 minutes",
+        "Added 'Sync my memory to GitHub' voice command",
+        "Added 'Pull my memory from GitHub' voice command",
+        "Memory now auto-syncs to repository in background"
+      ]
+    },
     {
       "version": "1.2.0",
       "date": "2026-02-02",

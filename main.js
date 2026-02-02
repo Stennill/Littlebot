@@ -259,6 +259,22 @@ app.whenReady().then(async () => {
   console.log('History path:', getHistoryPath());
   console.log('========================');
   createWindow();
+  
+  // Auto-sync memory to GitHub every 30 minutes
+  const AUTO_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutes in milliseconds
+  setInterval(async () => {
+    try {
+      const repoPath = memoryStore.getRepoPath();
+      const result = await memoryStore.syncWithGitHub(repoPath);
+      if (result.success) {
+        console.log(`[Auto-sync] Memory synced to GitHub at ${new Date().toLocaleTimeString()}`);
+      }
+    } catch (err) {
+      console.error('[Auto-sync] Failed:', err);
+    }
+  }, AUTO_SYNC_INTERVAL);
+  
+  console.log('Auto-sync enabled: Memory will sync to GitHub every 30 minutes');
 });
 
 app.on('window-all-closed', () => {
@@ -1016,6 +1032,23 @@ Current system time: ${currentTime}${memoryContext}${versionContext}`;
           const factToSave = rememberMatch[1].trim();
           await memoryStore.addFact(factToSave, 'user');
           console.log('Explicitly saved to memory:', factToSave);
+        }
+      }
+      
+      // Check for memory sync commands
+      if (lowerText.includes('sync') && (lowerText.includes('memory') || lowerText.includes('github'))) {
+        const repoPath = memoryStore.getRepoPath();
+        const result = await memoryStore.syncWithGitHub(repoPath);
+        if (result.success) {
+          console.log('Memory synced to GitHub:', result.path);
+        }
+      }
+      
+      if (lowerText.includes('pull') && (lowerText.includes('memory') || lowerText.includes('github'))) {
+        const repoPath = memoryStore.getRepoPath();
+        const result = await memoryStore.pullFromGitHub(repoPath);
+        if (result.success) {
+          console.log('Memory pulled from GitHub');
         }
       }
       
