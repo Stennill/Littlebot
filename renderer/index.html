@@ -65,13 +65,25 @@
             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
 
+          <filter id="fShadow" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+            <feOffset dx="0" dy="2" result="offsetblur"/>
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.8"/>
+            </feComponentTransfer>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
           <clipPath id="clipCore">
-            <circle cx="256" cy="256" r="78"/>
+            <circle cx="256" cy="256" r="120"/>
           </clipPath>
 
-          <path id="o1" d="M256,256 m-46,0 a46,34 0 1,0 92,0 a46,34 0 1,0 -92,0"/>
-          <path id="o2" d="M256,256 m-30,0 a30,54 0 1,0 60,0 a30,54 0 1,0 -60,0"/>
-          <path id="o3" d="M256,256 m-62,0 a62,48 0 1,0 124,0 a62,48 0 1,0 -124,0"/>
+          <path id="o1" d="M256,256 m-70,0 a70,50 0 1,0 140,0 a70,50 0 1,0 -140,0"/>
+          <path id="o2" d="M256,256 m-50,0 a50,80 0 1,0 100,0 a50,80 0 1,0 -100,0"/>
+          <path id="o3" d="M256,256 m-90,0 a90,70 0 1,0 180,0 a90,70 0 1,0 -180,0"/>
         </defs>
 
         <style>
@@ -95,22 +107,11 @@
           }
         </style>
 
-        <!-- Outer rings (hairline) -->
+        <!-- Shadow layer for visibility on light backgrounds -->
+        <circle cx="256" cy="256" r="180" fill="rgba(0, 0, 0, 0.15)" filter="url(#fShadow)"/>
+
+        <!-- Inner ring only -->
         <g filter="url(#fGlow)" style="mix-blend-mode:screen">
-          <g class="spinSlow">
-            <circle cx="256" cy="256" r="150" fill="none" stroke="url(#gRing)" stroke-width="1.15"
-                    stroke-linecap="round" stroke-dasharray="42 18 18 14 30 22 16 16" opacity="0.60"/>
-            <circle cx="256" cy="256" r="164" fill="none" stroke="#bdf7ff" stroke-width="0.55"
-                    stroke-linecap="round" stroke-dasharray="2 16" opacity="0.26"/>
-          </g>
-
-          <g class="spinFast">
-            <circle cx="256" cy="256" r="122" fill="none" stroke="url(#gRing2)" stroke-width="0.95"
-                    stroke-linecap="round" stroke-dasharray="30 16 10 14 24 20 8 12" opacity="0.70"/>
-            <circle cx="256" cy="256" r="110" fill="none" stroke="#7cf3ff" stroke-width="0.45"
-                    stroke-linecap="round" stroke-dasharray="1 10" opacity="0.20"/>
-          </g>
-
           <g class="spinMid">
             <circle cx="256" cy="256" r="92" fill="none" stroke="#ffffff" stroke-width="0.40"
                     stroke-linecap="round" stroke-dasharray="10 10 2 14 6 12 2 18" opacity="0.22"/>
@@ -120,60 +121,28 @@
         <!-- Core bloom -->
         <g filter="url(#fBloom)" style="mix-blend-mode:screen">
           <g class="pulse2">
-            <circle cx="256" cy="256" r="108" fill="url(#gCore)" opacity="0.22"/>
-            <circle cx="256" cy="256" r="86"  fill="url(#gCore)" opacity="0.28"/>
-            <circle cx="256" cy="256" r="64"  fill="url(#gCore)" opacity="0.34"/>
+            <circle cx="256" cy="256" r="108" fill="url(#gCore)" opacity="0.40"/>
+            <circle cx="256" cy="256" r="86"  fill="url(#gCore)" opacity="0.50"/>
+            <circle cx="256" cy="256" r="64"  fill="url(#gCore)" opacity="0.60"/>
           </g>
         </g>
 
         <!-- Center lens + nucleus (hairline) -->
         <g filter="url(#fGlow)" style="mix-blend-mode:screen">
-          <circle cx="256" cy="256" r="78" fill="none" stroke="#ffffff" stroke-width="0.55" opacity="0.16"/>
-          <circle cx="256" cy="256" r="72" fill="none" stroke="#7cf3ff" stroke-width="0.45" opacity="0.14"/>
+          <circle cx="256" cy="256" r="78" fill="none" stroke="#ffffff" stroke-width="0.55" opacity="0.30"/>
+          <circle cx="256" cy="256" r="72" fill="none" stroke="#7cf3ff" stroke-width="0.45" opacity="0.28"/>
 
           <g class="pulse">
-            <circle cx="256" cy="256" r="46" fill="url(#gCore)" opacity="0.78"/>
-            <circle cx="256" cy="256" r="32" fill="url(#gHot)" opacity="0.95"/>
-            <circle cx="256" cy="256" r="12" fill="#ffffff" opacity="0.22"/>
+            <circle cx="256" cy="256" r="46" fill="url(#gCore)" opacity="0.95"/>
+            <circle cx="256" cy="256" r="32" fill="url(#gHot)" opacity="1.0"/>
+            <circle cx="256" cy="256" r="12" fill="#ffffff" opacity="0.45"/>
           </g>
         </g>
 
         <!-- Swirling particles (slow) -->
-        <g clip-path="url(#clipCore)" filter="url(#fSpark)" style="mix-blend-mode:screen">
-          <circle cx="256" cy="256" r="80" fill="url(#gCore)" opacity="0.16"/>
-
-          <circle r="2.8" fill="url(#gParticle)" class="tw">
-            <animateMotion dur="12s" repeatCount="indefinite" rotate="auto">
-              <mpath href="#o1"/>
-            </animateMotion>
-          </circle>
-          <circle r="2.0" fill="url(#gParticle)" opacity="0.68" class="tw2">
-            <animateMotion dur="18s" repeatCount="indefinite" rotate="auto" keyPoints="0.35;1" keyTimes="0;1" calcMode="linear">
-              <mpath href="#o1"/>
-            </animateMotion>
-          </circle>
-
-          <circle r="2.4" fill="url(#gParticle)" opacity="0.55" class="tw">
-            <animateMotion dur="14s" repeatCount="indefinite" rotate="auto">
-              <mpath href="#o2"/>
-            </animateMotion>
-          </circle>
-          <circle r="1.7" fill="#ffffff" opacity="0.40">
-            <animateMotion dur="10s" repeatCount="indefinite" rotate="auto" keyPoints="0.55;1" keyTimes="0;1" calcMode="linear">
-              <mpath href="#o2"/>
-            </animateMotion>
-          </circle>
-
-          <circle r="1.6" fill="#ffffff" opacity="0.36">
-            <animateMotion dur="11s" repeatCount="indefinite" rotate="auto">
-              <mpath href="#o3"/>
-            </animateMotion>
-          </circle>
-          <circle r="1.1" fill="#7cf3ff" opacity="0.24">
-            <animateMotion dur="16s" repeatCount="indefinite" rotate="auto" keyPoints="0.2;1" keyTimes="0;1" calcMode="linear">
-              <mpath href="#o3"/>
-            </animateMotion>
-          </circle>
+        <g id="particles" clip-path="url(#clipCore)" filter="url(#fSpark)" style="mix-blend-mode:screen">
+          <circle cx="256" cy="256" r="80" fill="url(#gCore)" opacity="0.30"/>
+          <!-- Particles will be dynamically added here based on topics learned -->
         </g>
       </svg>
     </div>

@@ -13,7 +13,8 @@ class MemoryStore {
     this.memories = {
       facts: [], // User facts: name, preferences, etc.
       topics: {}, // Topic-based knowledge
-      conversations: [] // Recent conversation summaries
+      conversations: [], // Recent conversation summaries
+      lastUpdated: null // Timestamp of last memory update
     };
     this.loaded = false;
   }
@@ -29,7 +30,8 @@ class MemoryStore {
       this.memories = {
         facts: [],
         topics: {},
-        conversations: []
+        conversations: [],
+        lastUpdated: null
       };
       this.loaded = true;
       console.log('Starting with empty memory store');
@@ -38,6 +40,8 @@ class MemoryStore {
 
   async save() {
     try {
+      // Update the lastUpdated timestamp whenever we save
+      this.memories.lastUpdated = Date.now();
       await fs.writeFile(this.memoryPath, JSON.stringify(this.memories, null, 2), 'utf8');
     } catch (err) {
       console.error('Failed to save memory:', err);
@@ -59,10 +63,7 @@ class MemoryStore {
     
     this.memories.facts.push(entry);
     
-    // Keep only last 100 facts to prevent unbounded growth
-    if (this.memories.facts.length > 100) {
-      this.memories.facts = this.memories.facts.slice(-100);
-    }
+    // No limit - allow unlimited fact accumulation
     
     await this.save();
     return entry;
@@ -91,10 +92,7 @@ class MemoryStore {
     
     this.memories.topics[topicKey].lastAccessed = Date.now();
     
-    // Keep only last 20 entries per topic
-    if (this.memories.topics[topicKey].entries.length > 20) {
-      this.memories.topics[topicKey].entries = this.memories.topics[topicKey].entries.slice(-20);
-    }
+    // No limit - allow unlimited topic entries
     
     await this.save();
   }
@@ -110,16 +108,14 @@ class MemoryStore {
       timestamp: Date.now()
     });
     
-    // Keep only last 10 conversation summaries
-    if (this.memories.conversations.length > 10) {
-      this.memories.conversations = this.memories.conversations.slice(-10);
-    }
+    // No limit - keep all conversation summaries for full context
     
     await this.save();
   }
 
   /**
    * Get relevant memories for a given query
+   * Uses intelligent filtering to find what's actually useful
    */
   async getRelevantMemories(query) {
     if (!this.loaded) await this.load();
@@ -131,26 +127,47 @@ class MemoryStore {
       recentContext: []
     };
     
-    // Find relevant facts (simple keyword matching)
-    relevantMemories.facts = this.memories.facts.filter(fact => {
+    // Always include critical identity facts
+    const criticalFacts = this.memories.facts.filter(fact => {
       const factLower = fact.text.toLowerCase();
-      // Check if any word in query matches any word in fact
-      const queryWords = queryLower.split(/\s+/);
-      return queryWords.some(word => word.length > 3 && factLower.includes(word));
-    }).slice(-5); // Last 5 relevant facts
+      const category = (fact.category || '').toLowerCase();
+      return factLower.includes('name is') || 
+             factLower.includes('i am') || 
+             factLower.includes('i\'m') ||
+             category === 'identity' ||
+             category === 'user';
+    });
     
-    // Find relevant topics
+    // Get keyword-matched facts
+    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+    const matchedFacts = this.memories.facts.filter(fact => {
+      const factLower = fact.text.toLowerCase();
+      return queryWords.some(word => factLower.includes(word));
+    });
+    
+    // Get very recent facts (last 10 - recent context is valuable)
+    const recentFacts = this.memories.facts.slice(-10);
+    
+    // Merge all facts, removing duplicates
+    const allFacts = new Map();
+    [...criticalFacts, ...matchedFacts, ...recentFacts].forEach(fact => {
+      allFacts.set(fact.id, fact);
+    });
+    
+    relevantMemories.facts = Array.from(allFacts.values());
+    
+    // Find relevant topics by keyword
     for (const [topicKey, topicData] of Object.entries(this.memories.topics)) {
-      if (queryLower.includes(topicKey) || topicKey.includes(queryLower.split(/\s+/)[0])) {
+      if (queryWords.some(word => topicKey.includes(word) || word.includes(topicKey))) {
         relevantMemories.topics.push({
           topic: topicData.name,
-          entries: topicData.entries.slice(-3) // Last 3 entries
+          entries: topicData.entries.slice(-5) // Recent entries only
         });
       }
     }
     
-    // Include recent conversation context
-    relevantMemories.recentContext = this.memories.conversations.slice(-2);
+    // Recent conversation context (last 3)
+    relevantMemories.recentContext = this.memories.conversations.slice(-3);
     
     return relevantMemories;
   }
@@ -178,9 +195,40 @@ class MemoryStore {
     this.memories = {
       facts: [],
       topics: {},
-      conversations: []
+      conversations: [],
+      lastUpdated: null
     };
     await this.save();
+  }
+
+  /**
+   * Get the last updated timestamp
+   */
+  getLastUpdated() {
+    if (!this.loaded) return null;
+    return this.memories.lastUpdated;
+  }
+
+  /**
+   * Get formatted last updated time
+   */
+  getLastUpdatedFormatted() {
+    const timestamp = this.getLastUpdated();
+    if (!timestamp) return 'Never';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    
+    return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString();
   }
 
   /**

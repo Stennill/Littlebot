@@ -1,8 +1,23 @@
 {
-  "version": "1.2.3",
-  "codename": "Arc Reactor",
-  "buildDate": "2026-02-02",
+  "version": "1.2.4",
+  "codename": "Connection to Notion",
+  "buildDate": "2026-02-03",
   "changelog": [
+    {
+      "version": "1.2.4",
+      "date": "2026-02-03",
+      "name": "Connection to Notion",
+      "changes": [
+        "Implemented dynamic context loading system - reduces token usage by 50-60%",
+        "Added intelligent memory relevance scoring and keyword extraction",
+        "Created tiered memory system: Core Identity (always load) + Relevant Facts/Topics (query-based)",
+        "Reduced system prompt from 6,474 to 962 characters (85% reduction)",
+        "Switched to Claude Haiku 3 model for 92% cost savings",
+        "Added real-time cost tracking for each API request",
+        "Optimized context assembly to send only 15-25 facts instead of all 233",
+        "Total cost reduction: ~95% (from $0.024 to $0.002 per request)"
+      ]
+    },
     {
       "version": "1.2.3",
       "date": "2026-02-02",

@@ -120,12 +120,86 @@ async function saveHistory() {
   }
 }
 
-sendBtn.addEventListener('click', () => {
+// Local command handler for file operations (no API call needed)
+async function handleLocalCommand(text) {
+  const lower = text.toLowerCase();
+  
+  // File search commands
+  if (lower.includes('find') || lower.includes('search') || lower.includes('look for')) {
+    // Extract filename from common patterns
+    const patterns = [
+      /find (?:my |the )?(.+)/i,
+      /search for (.+)/i,
+      /look for (.+)/i,
+      /where(?:'s| is) (?:my |the )?(.+)/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const filename = match[1].trim();
+        appendMessage('assistant', `Searching for "${filename}"...`);
+        
+        const results = await window.electronAPI.searchFile(filename);
+        
+        if (results && results.length > 0) {
+          let response = `Found ${results.length} file(s):\n\n`;
+          results.forEach((file, i) => {
+            response += `${i + 1}. **${file.name}**\n   ${file.directory}\n\n`;
+          });
+          response += 'Which one would you like to open?';
+          appendMessage('assistant', response);
+        } else {
+          appendMessage('assistant', `No files found matching "${filename}".`);
+        }
+        return true;
+      }
+    }
+  }
+  
+  // Recent files
+  if (lower.includes('recent') || lower.includes('what was i working on')) {
+    appendMessage('assistant', 'Getting your recent files...');
+    const files = await window.electronAPI.getRecentFiles(10);
+    
+    if (files && files.length > 0) {
+      let response = `Here's what you've been working on:\n\n`;
+      files.forEach((file, i) => {
+        response += `${i + 1}. **${file.name}** - ${file.lastModified}\n   ${file.directory} (${file.sizeFormatted})\n\n`;
+      });
+      appendMessage('assistant', response);
+    } else {
+      appendMessage('assistant', 'No recent files found.');
+    }
+    return true;
+  }
+  
+  return false; // Not a local command
+}
+
+sendBtn.addEventListener('click', async () => {
   const text = input.value.trim();
   if (!text) return;
   appendMessage('user', text);
   input.value = '';
-  window.electronAPI.sendMessage(text);
+  
+  // Try to handle locally first
+  const handledLocally = await handleLocalCommand(text);
+  if (handledLocally) return; // Don't call Claude API
+  
+  // Get conversation history
+  const history = [];
+  const messageEls = messages.querySelectorAll('.message');
+  messageEls.forEach(el => {
+    const who = el.classList.contains('user') ? 'user' : 'assistant';
+    const text = el.textContent.trim();
+    if (text) {
+      history.push({ role: who, content: text });
+    }
+  });
+  history.reverse(); // Reverse because messages are stored in reverse order
+  
+  window.electronAPI.sendMessage(text, history);
 });
 
 // Allow Enter key to send message
@@ -560,3 +634,89 @@ setTimeout(() => {
 
 // Load settings on startup
 loadSettings();
+
+// ===== Dynamic Particles Based on Topics Learned =====
+const particlesGroup = document.getElementById('particles');
+
+// Starting positions around the edge (in degrees)
+const startingAngles = [0, 60, 120, 180, 240, 300, 45, 135, 225, 315];
+
+function createParticle(index) {
+  const angle = startingAngles[index % startingAngles.length];
+  const radius = 2.5 + (index % 3) * 0.8; // Varying sizes
+  const duration = 2 + (index % 4) * 0.5; // Varying speeds
+  const delay = (index % 6) * 0.3; // Stagger the animations
+  
+  // Convert angle to starting position on edge of clipping area
+  const startRadius = 110;
+  const startX = 256 + startRadius * Math.cos(angle * Math.PI / 180);
+  const startY = 256 + startRadius * Math.sin(angle * Math.PI / 180);
+  
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('r', radius);
+  circle.setAttribute('fill', index % 2 === 0 ? 'url(#gParticle)' : '#ffffff');
+  circle.setAttribute('opacity', 0.6 + (index % 3) * 0.15);
+  
+  // Animate from edge to center
+  const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+  animate.setAttribute('attributeName', 'cx');
+  animate.setAttribute('from', startX);
+  animate.setAttribute('to', '256');
+  animate.setAttribute('dur', `${duration}s`);
+  animate.setAttribute('repeatCount', 'indefinite');
+  animate.setAttribute('begin', `${delay}s`);
+  
+  const animateY = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+  animateY.setAttribute('attributeName', 'cy');
+  animateY.setAttribute('from', startY);
+  animateY.setAttribute('to', '256');
+  animateY.setAttribute('dur', `${duration}s`);
+  animateY.setAttribute('repeatCount', 'indefinite');
+  animateY.setAttribute('begin', `${delay}s`);
+  
+  // Fade out as it approaches center
+  const animateOpacity = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+  animateOpacity.setAttribute('attributeName', 'opacity');
+  animateOpacity.setAttribute('from', 0.8);
+  animateOpacity.setAttribute('to', '0');
+  animateOpacity.setAttribute('dur', `${duration}s`);
+  animateOpacity.setAttribute('repeatCount', 'indefinite');
+  animateOpacity.setAttribute('begin', `${delay}s`);
+  
+  circle.appendChild(animate);
+  circle.appendChild(animateY);
+  circle.appendChild(animateOpacity);
+  particlesGroup.appendChild(circle);
+}
+
+function updateParticles(topicCount) {
+  // Clear existing particles (except the background circle)
+  while (particlesGroup.children.length > 1) {
+    particlesGroup.removeChild(particlesGroup.lastChild);
+  }
+  
+  // Create particles based on topic count
+  for (let i = 0; i < topicCount; i++) {
+    createParticle(i);
+  }
+  
+  console.log(`Orb particles updated: ${topicCount} particles for ${topicCount} topics`);
+}
+
+// Initialize particles on load
+(async () => {
+  const topicCount = await window.electronAPI.getTopicCount();
+  // Always show at least 6 particles for visual interest
+  const particlesToShow = Math.max(topicCount, 6);
+  updateParticles(particlesToShow);
+  console.log(`Initialized with ${particlesToShow} particles (${topicCount} topics)`);
+})();
+
+// Listen for new topics learned
+window.electronAPI.onTopicLearned((data) => {
+  console.log('New topic learned:', data.topic, '- Total topics:', data.totalTopics);
+  // Always show at least 6 particles
+  const particlesToShow = Math.max(data.totalTopics, 6);
+  updateParticles(particlesToShow);
+});
+

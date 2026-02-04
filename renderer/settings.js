@@ -1,6 +1,8 @@
 const apiKeyInput = document.getElementById('apiKeyInput');
 const anthropicVersionInput = document.getElementById('anthropicVersionInput');
 const anthropicModelInput = document.getElementById('anthropicModelInput');
+const notionApiKeyInput = document.getElementById('notionApiKeyInput');
+const notionDatabaseIdInput = document.getElementById('notionDatabaseIdInput');
 const voiceSelect = document.getElementById('voiceSelect');
 const rateInput = document.getElementById('rateInput');
 const pitchInput = document.getElementById('pitchInput');
@@ -28,7 +30,9 @@ async function loadSettings() {
     if (s) {
       if (s.anthropicKey) apiKeyInput.value = s.anthropicKey;
       anthropicVersionInput.value = s.anthropicVersion || '2023-06-01';
-      anthropicModelInput.value = s.anthropicModel || 'claude-sonnet-4-5-20250929';
+      anthropicModelInput.value = s.anthropicModel || 'claude-3-haiku-20240307';
+      if (s.notionApiKey) notionApiKeyInput.value = s.notionApiKey;
+      if (s.notionDatabaseId) notionDatabaseIdInput.value = s.notionDatabaseId;
       
       if (s.voice) {
         if (s.voice.rate) rateInput.value = s.voice.rate;
@@ -38,7 +42,7 @@ async function loadSettings() {
       }
     } else {
       anthropicVersionInput.value = '2023-06-01';
-      anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
+      anthropicModelInput.value = 'claude-3-haiku-20240307';
     }
     
     // Load system prompt
@@ -53,7 +57,7 @@ async function loadSettings() {
   } catch (e) {
     console.error('Failed to load settings:', e);
     anthropicVersionInput.value = '2023-06-01';
-    anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
+    anthropicModelInput.value = 'claude-3-haiku-20240307';
   }
 }
 
@@ -106,6 +110,8 @@ saveBtn.addEventListener('click', async () => {
   const key = apiKeyInput.value.trim() || null;
   const version = anthropicVersionInput.value.trim() || null;
   const model = anthropicModelInput.value.trim() || null;
+  const notionKey = notionApiKeyInput.value.trim() || null;
+  const notionDbId = notionDatabaseIdInput.value.trim() || null;
   const voice = {
     voiceURI: voiceSelect.value,
     rate: parseFloat(rateInput.value),
@@ -118,6 +124,8 @@ saveBtn.addEventListener('click', async () => {
       anthropicKey: key, 
       anthropicVersion: version, 
       anthropicModel: model,
+      notionApiKey: notionKey,
+      notionDatabaseId: notionDbId,
       voice: voice
     });
     

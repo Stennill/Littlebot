@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  sendMessage: (msg) => ipcRenderer.send('assistant-message', msg),
+  sendMessage: (msg, history) => ipcRenderer.send('assistant-message', { text: msg, history: history || [] }),
   onReply: (cb) => ipcRenderer.on('assistant-reply', (event, data) => cb(data))
   ,getApiKey: () => ipcRenderer.invoke('get-api-key')
   ,setApiKey: (k) => ipcRenderer.invoke('set-api-key', k)
@@ -35,4 +35,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Memory GitHub sync
   ,memorySyncGitHub: () => ipcRenderer.invoke('memory-sync-github')
   ,memoryPullGitHub: () => ipcRenderer.invoke('memory-pull-github')
+  // File search and inspection
+  ,searchFile: (filename) => ipcRenderer.invoke('search-file', filename)
+  ,getFileInfo: (filePath) => ipcRenderer.invoke('get-file-info', filePath)
+  ,openFile: (filePath) => ipcRenderer.invoke('open-file', filePath)
+  ,getRecentFiles: (limit) => ipcRenderer.invoke('get-recent-files', limit)
+  ,getRemovableDrives: () => ipcRenderer.invoke('get-removable-drives')
+  ,moveToRemovable: (filePath, targetDrive) => ipcRenderer.invoke('move-to-removable', filePath, targetDrive)
+  ,copyToRemovable: (filePath, targetDrive) => ipcRenderer.invoke('copy-to-removable', filePath, targetDrive)
+  // Orb particles
+  ,getTopicCount: () => ipcRenderer.invoke('get-topic-count')
+  ,onTopicLearned: (cb) => ipcRenderer.on('topic-learned', (event, data) => cb(data))
 });
