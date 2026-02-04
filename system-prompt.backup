@@ -14,7 +14,7 @@ How the interface works:
 
 Technical details:
 - Text-only interface (no voice or microphone features)
-- Powered by Anthropic's Claude AI (claude-sonnet-4-5-20250929 model)
+- Powered by Anthropic's Claude AI (claude-3-haiku-20240307 model)
 - Users can set their API key via the settings button (⚙️)
 - Supports markdown formatting: **bold**, *italic*, bullet lists with - or •
 - Messages appear with newest at the bottom

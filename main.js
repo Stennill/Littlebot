@@ -8,6 +8,11 @@ const memoryStore = require('./memory');
 const ContextBuilder = require('./context-builder');
 const notionManager = require('./notion-manager');
 const notionCommands = require('./notion-commands');
+const notionService = require('./notion-service');
+const schedulerService = require('./scheduler-service');
+const eventNotifier = require('./event-notifier');
+const scheduleOptimizer = require('./schedule-optimizer');
+const slackService = require('./slack-service');
 
 let speechProcess = null;
 let wakeWordProcess = null;
@@ -275,6 +280,12 @@ app.whenReady().then(async () => {
   contextBuilder = new ContextBuilder(memoryStore);
   console.log('Context builder initialized');
   
+  // Configure Slack if webhook is available
+  if (storedConfig.slackWebhook) {
+    slackService.configure(storedConfig.slackWebhook);
+    console.log('Slack service configured');
+  }
+  
   // Check if GitHub memory is newer and auto-update
   const updateResult = await memoryStore.autoUpdateIfNewer();
   if (updateResult.updated) {
@@ -304,7 +315,40 @@ app.whenReady().then(async () => {
     }
   }, AUTO_SYNC_INTERVAL);
   
+  // Auto-scheduler: Check and schedule tasks every 2 hours
+  const SCHEDULER_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours
+  
+  // Run initial schedule check after 1 minute (give app time to settle)
+  setTimeout(async () => {
+    if (notionManager.isConfigured()) {
+      console.log('[Scheduler] Running initial auto-schedule check...');
+      await schedulerService.autoSchedule();
+    }
+  }, 60 * 1000);
+  
+  // Then run every 2 hours
+  setInterval(async () => {
+    if (notionManager.isConfigured()) {
+      console.log(`[Auto-scheduler] Running scheduled task placement at ${new Date().toLocaleTimeString()}`);
+      await schedulerService.autoSchedule();
+    }
+  }, SCHEDULER_INTERVAL);
+  
+  // Event Notifier: Check for upcoming events and notify user
+  eventNotifier.start((message) => {
+    // Send notification to renderer to show panel and display message
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('show-notification', message);
+    }
+  });
+  
+  // Schedule Optimizer: Move tasks to fill gaps when tasks complete early
+  scheduleOptimizer.start();
+  
   console.log('Auto-sync/update enabled: Checks GitHub every 30 minutes');
+  console.log('Auto-scheduler enabled: Places unscheduled tasks every 2 hours');
+  console.log('Event notifier enabled: Alerts for events 15 minutes before start');
+  console.log('Schedule optimizer enabled: Fills gaps when tasks complete early');
 });
 
 app.on('window-all-closed', () => {
@@ -773,6 +817,12 @@ ipcMain.handle('set-settings', async (event, settings) => {
     notionManager.configure(storedConfig.notionApiKey, storedConfig.notionDatabaseId);
   }
   
+  // Configure Slack if webhook provided
+  if (storedConfig.slackWebhook) {
+    slackService.configure(storedConfig.slackWebhook);
+    console.log('Slack service configured via settings');
+  }
+  
   await writeConfig(storedConfig);
   return storedConfig;
 });
@@ -1108,7 +1158,7 @@ ipcMain.handle('probe-anthropic', async (event) => {
   if (!anthropicKey) return { error: 'no_api_key' };
 
   const endpoint = 'https://api.anthropic.com/v1/messages';
-  const modelToUse = (storedConfig && storedConfig.anthropicModel) || 'claude-sonnet-4-5-20250929';
+  const modelToUse = (storedConfig && storedConfig.anthropicModel) || 'claude-3-haiku-20240307';
   const version = (storedConfig && storedConfig.anthropicVersion) || '2023-06-01';
   
   const payload = {
@@ -1467,6 +1517,7 @@ ipcMain.on('assistant-message', (event, data) => {
       console.log('🧠 ARC THINKING PROCESS');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('📥 User Input:', input);
+      console.log('📚 Conversation history length:', history.length, 'messages');
       console.log('💬 Conversation history length:', history.length, 'messages');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       
@@ -1515,14 +1566,93 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
       
       console.log('🤖 Using model:', modelToUse);
       
+      // Strip out "Arc" name addressing from input (works for all commands)
+      // Removes patterns like: "Hey Arc,", "Arc:", "Hi Arc", "Arc", etc.
+      let processedInput = input.replace(/^(?:(?:hey|hi)\s+)?arc[,:]?\s*/i, '').trim();
+      
       // Check if this is a direct Notion command first
       if (notionManager.isConfigured()) {
         console.log('🔍 Checking for direct Notion command...');
-        const notionResult = await notionCommands.parseNotionCommand(input);
+        console.log('   Input:', input);
+        console.log('   Processed:', processedInput);
+        console.log('   Notion configured: YES');
+        
+        // Pattern: schedule my tasks / auto-schedule tasks
+        if (/schedule\s+(my\s+)?tasks|auto.?schedule/i.test(processedInput)) {
+          console.log('   ✅ MATCHED SCHEDULE TASKS COMMAND!');
+          const result = await schedulerService.autoSchedule();
+          return result.message || 'Scheduling complete';
+        }
+        
+        // Pattern: move [item] to [time] [optional: today/tomorrow]
+        // Examples: "move my lunch to 1pm", "can you move lunch to 1:30pm", "please move meeting to 2pm tomorrow"
+        const itemMovePattern = /(?:can you|could you|would you|please)?\s*move\s+(?:my\s+)?(.+?)\s+to\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(today|tomorrow)?/i;
+        const itemMoveMatch = processedInput.match(itemMovePattern);
+        
+        if (itemMoveMatch) {
+          console.log('   ✅ MATCHED ITEM MOVE TO TIME PATTERN!');
+          const itemKeyword = itemMoveMatch[1].trim();
+          const targetTime = itemMoveMatch[2].trim();
+          const targetDate = itemMoveMatch[3] || null;
+          
+          console.log('   Item keyword:', itemKeyword);
+          console.log('   Target time:', targetTime);
+          console.log('   Target date:', targetDate || 'today (default)');
+          console.log('   🚀 Calling notionService.moveItemToTime...');
+          
+          const result = await notionService.moveItemToTime(itemKeyword, targetTime, targetDate);
+          console.log('   📦 Service result:', result);
+          
+          // Send notification to display in Arc panel
+          if (result.success && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('show-notification', result.message);
+          }
+          
+          console.log('   ✅ Returning directly (no Claude call)');
+          return result.message || result.error;
+        }
+        
+        // Pattern: move today's/tomorrow's meetings to [date]
+        const meetingMovePattern = /(move|reschedule)\s+(today'?s?|tomorrow'?s?|yesterday'?s?)\s+meetings?\s+to\s+(today|tomorrow|yesterday|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
+        const moveMatch = processedInput.match(meetingMovePattern);
+        
+        console.log('   Meeting move pattern match:', moveMatch ? 'YES' : 'NO');
+        
+        if (moveMatch) {
+          console.log('   ✅ MATCHED MEETING MOVE PATTERN!');
+          console.log('   Pattern details:', moveMatch);
+          const fromDateWord = moveMatch[2];
+          const toDateWord = moveMatch[3];
+          
+          console.log('   From word:', fromDateWord);
+          console.log('   To word:', toDateWord);
+          
+          const fromDate = notionService.calculateDate(fromDateWord);
+          const toDate = notionService.calculateDate(toDateWord);
+          
+          console.log('   From ISO:', fromDate);
+          console.log('   To ISO:', toDate);
+          console.log('   🚀 Calling notionService.moveMeetings...');
+          
+          const result = await notionService.moveMeetings(fromDate, toDate);
+          console.log('   📦 Service result:', result);
+          console.log('   ✅ Returning directly (no Claude call)');
+          const returnValue = result.message || result.error;
+          console.log('   📤 Return value:', returnValue);
+          return returnValue;
+        }
+        
+        // Try other Notion commands
+        console.log('   Trying other notion-commands patterns...');
+        const notionResult = await notionCommands.parseNotionCommand(processedInput);
         if (notionResult) {
           console.log('✅ Direct Notion command executed');
+          console.log('   Result:', notionResult);
           return notionResult;
         }
+        console.log('   No notion-commands pattern matched');
+      } else {
+        console.log('🔍 Notion NOT configured - skipping direct commands');
       }
       
       console.log('📡 Sending to Anthropic API...\n');
@@ -1546,14 +1676,7 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
       
       console.log('   - Total messages in conversation:', messages.length);
       
-      // Smart model selection: Use Sonnet for Notion operations (more reliable tool use)
-      const notionKeywords = ['move', 'reschedule', 'update', 'change date', 'tomorrow', 'next week', 'notion', 'meeting', 'task'];
-      const needsSonnet = notionKeywords.some(keyword => input.toLowerCase().includes(keyword));
-      
-      if (needsSonnet && modelToUse === 'claude-3-haiku-20240307') {
-        console.log('   🔄 Switching to Sonnet 4 for reliable Notion operations...');
-        modelToUse = 'claude-sonnet-4-20250514';
-      }
+      // Using configured model (default: Haiku 3)
       
       // Define available tools for Claude
       const tools = [
@@ -1679,13 +1802,13 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
         },
         {
           name: "notion_create_page",
-          description: "Create a new page in the Notion database with specified properties. Use notion_get_schema first to see available fields.",
+          description: "Create a new page in the Notion database with specified properties. Use notion_get_schema first to see available fields and valid status values. Common statuses: Unprocessed, Needs Review, Upcoming, Processed. IMPORTANT: Set 'Estimated Mintues' (note typo) for duration - Lunch=45 min, Break=15 min, default=30 min. ALWAYS include both start AND end times in Event Date. Use Type 'Break' for lunch/breaks, 'Meeting' for meetings, 'Task' for work items.",
           input_schema: {
             type: "object",
             properties: {
               properties: {
                 type: "object",
-                description: "Page properties as key-value pairs (e.g., {Name: 'Task Name', Status: {type: 'select', select: {name: 'To Do'}}})"
+                description: "Page properties as key-value pairs. For status: {Status: {type: 'status', status: {name: 'Unprocessed'}}}. For dates with times - MUST include both start and end: {'Event Date': {type: 'date', date: {start: '2026-02-04T11:30:00.000-05:00', end: '2026-02-04T12:15:00.000-05:00'}}}. For duration: {'Estimated Mintues': {type: 'number', number: 45}}. For type: {Type: {type: 'select', select: {name: 'Break'}}}"
               }
             },
             required: ["properties"]
@@ -2174,7 +2297,7 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
 async function extractLearnings(userMessage, assistantReply, apiKey) {
   try {
     const endpoint = 'https://api.anthropic.com/v1/messages';
-    const modelToUse = (storedConfig && storedConfig.anthropicModel) || 'claude-sonnet-4-5-20250929';
+    const modelToUse = (storedConfig && storedConfig.anthropicModel) || 'claude-3-haiku-20240307';
     const version = (storedConfig && storedConfig.anthropicVersion) || '2023-06-01';
     
     const extractionPrompt = `Analyze this conversation exchange and extract any learnable information:

@@ -1,6 +1,7 @@
 const apiKeyInput = document.getElementById('apiKeyInput');
 const anthropicVersionInput = document.getElementById('anthropicVersionInput');
 const anthropicModelInput = document.getElementById('anthropicModelInput');
+const slackWebhookInput = document.getElementById('slackWebhookInput');
 const notionApiKeyInput = document.getElementById('notionApiKeyInput');
 const notionDatabaseIdInput = document.getElementById('notionDatabaseIdInput');
 const voiceSelect = document.getElementById('voiceSelect');
@@ -31,6 +32,7 @@ async function loadSettings() {
       if (s.anthropicKey) apiKeyInput.value = s.anthropicKey;
       anthropicVersionInput.value = s.anthropicVersion || '2023-06-01';
       anthropicModelInput.value = s.anthropicModel || 'claude-3-haiku-20240307';
+      if (s.slackWebhook) slackWebhookInput.value = s.slackWebhook;
       if (s.notionApiKey) notionApiKeyInput.value = s.notionApiKey;
       if (s.notionDatabaseId) notionDatabaseIdInput.value = s.notionDatabaseId;
       
@@ -110,6 +112,7 @@ saveBtn.addEventListener('click', async () => {
   const key = apiKeyInput.value.trim() || null;
   const version = anthropicVersionInput.value.trim() || null;
   const model = anthropicModelInput.value.trim() || null;
+  const slackWebhook = slackWebhookInput.value.trim() || null;
   const notionKey = notionApiKeyInput.value.trim() || null;
   const notionDbId = notionDatabaseIdInput.value.trim() || null;
   const voice = {
@@ -124,6 +127,7 @@ saveBtn.addEventListener('click', async () => {
       anthropicKey: key, 
       anthropicVersion: version, 
       anthropicModel: model,
+      slackWebhook: slackWebhook,
       notionApiKey: notionKey,
       notionDatabaseId: notionDbId,
       voice: voice

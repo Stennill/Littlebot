@@ -46,4 +46,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Orb particles
   ,getTopicCount: () => ipcRenderer.invoke('get-topic-count')
   ,onTopicLearned: (cb) => ipcRenderer.on('topic-learned', (event, data) => cb(data))
+  // Event notifications
+  ,onNotification: (cb) => ipcRenderer.on('show-notification', (event, message) => cb(message))
 });

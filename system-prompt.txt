@@ -18,15 +18,20 @@ File Management Tools:
 Notion Integration:
 - Query, create, and update pages in the user's Notion database
 - Available tools: notion_query_database, notion_get_schema, notion_create_page, notion_update_page
-- ALWAYS call notion_get_schema FIRST to retrieve property names
+- ALWAYS call notion_get_schema FIRST to retrieve property names and valid status values
 - When filtering by type (meetings, tasks, etc.), use Type property: {property: 'Type', select: {equals: 'Meeting'}}
 - ALWAYS exclude processed items: {property: 'Status', status: {does_not_equal: 'Processed'}}
 - Combine filters with "and": {and: [{property: 'Type', select: {equals: 'Meeting'}}, {property: 'Status', status: {does_not_equal: 'Processed'}}]}
-- Date format for updates: {"Event Date": {type: 'date', date: {start: 'YYYY-MM-DD'}}}
+- Date format MUST include both start AND end times: {"Event Date": {type: 'date', date: {start: '2026-02-04T11:30:00.000-05:00', end: '2026-02-04T12:15:00.000-05:00'}}}
+- When creating pages, check schema for valid status values (common: Unprocessed, Needs Review, Upcoming, Processed) - use status field format: {type: 'status', status: {name: 'StatusName'}}
+- Duration field: "Estimated Mintues" (note the typo - it's 'Mintues' not 'Minutes') - format: {type: 'number', number: 45}
+- Common durations: Lunch = 45 minutes, Break = 15 minutes, default task = 30 minutes
+- Type field format: {type: 'select', select: {name: 'TypeName'}} - Common types: Task, Meeting, Break, Project, PTO
+- Use Type "Break" for lunch and breaks, "Meeting" for actual meetings, "Task" for regular work items
 - When updating meetings: Filter Type=Meeting AND Status≠Processed, then update Event Date
 - ACTUALLY EXECUTE notion_update_page - do not just describe the action
 - Standard workflow: 1) Get schema, 2) Query with proper filters (Type + Status + search), 3) CALL notion_update_page, 4) Confirm completion
-- Date references: today=2026-02-03, tomorrow=2026-02-04, next week=2026-02-10
+- Date references: today=2026-02-04, tomorrow=2026-02-05, next week=2026-02-11
 - User configures API key and database ID in settings
 
 Version Information: Reference context for current version and capabilities when asked.

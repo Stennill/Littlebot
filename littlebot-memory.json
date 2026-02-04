@@ -1871,6 +1871,396 @@
       "category": "user",
       "timestamp": 1770174167444,
       "id": 1770174167444.448
+    },
+    {
+      "text": "User is working on fixing a Notion integration issue",
+      "category": "user",
+      "timestamp": 1770212112929,
+      "id": 1770212112929.8152
+    },
+    {
+      "text": "User attempted to reschedule meetings using the integration but it failed",
+      "category": "user",
+      "timestamp": 1770212112931,
+      "id": 1770212112931.1711
+    },
+    {
+      "text": "User prefers communication without swearing/profanity",
+      "category": "user",
+      "timestamp": 1770212145891,
+      "id": 1770212145891.6257
+    },
+    {
+      "text": "User has a 'Tech Services Meeting' on their calendar",
+      "category": "user",
+      "timestamp": 1770212420779,
+      "id": 1770212420779.139
+    },
+    {
+      "text": "User is attempting to use a Notion-integrated assistant/tool",
+      "category": "user",
+      "timestamp": 1770212420780,
+      "id": 1770212420780.8496
+    },
+    {
+      "text": "User has not yet configured their Notion API connection",
+      "category": "user",
+      "timestamp": 1770212420782,
+      "id": 1770212420782.0295
+    },
+    {
+      "text": "User has access to a database or calendar system",
+      "category": "user",
+      "timestamp": 1770212627207,
+      "id": 1770212627207.1304
+    },
+    {
+      "text": "User has Tech Services meetings in their schedule",
+      "category": "user",
+      "timestamp": 1770212627213,
+      "id": 1770212627213.0803
+    },
+    {
+      "text": "User had a Tech Services meeting scheduled for 2026-02-03",
+      "category": "user",
+      "timestamp": 1770212627215,
+      "id": 1770212627215.0125
+    },
+    {
+      "text": "User uses Notion database for managing meetings",
+      "category": "user",
+      "timestamp": 1770213091708,
+      "id": 1770213091708.3071
+    },
+    {
+      "text": "User has upcoming meetings that need scheduling management",
+      "category": "user",
+      "timestamp": 1770213091710,
+      "id": 1770213091710.0566
+    },
+    {
+      "text": "User wants to exclude Tech Services meetings from certain operations",
+      "category": "user",
+      "timestamp": 1770213116210,
+      "id": 1770213116210.117
+    },
+    {
+      "text": "User has a meeting called 'POC Demo with Jess - Sharepoint Document Summarization'",
+      "category": "user",
+      "timestamp": 1770213116216,
+      "id": 1770213116216.461
+    },
+    {
+      "text": "User works with someone named Jess",
+      "category": "user",
+      "timestamp": 1770213116222,
+      "id": 1770213116222.4905
+    },
+    {
+      "text": "User appears to be involved in proof-of-concept demonstrations",
+      "category": "user",
+      "timestamp": 1770213116226,
+      "id": 1770213116226.4695
+    },
+    {
+      "text": "User works with Sharepoint and document summarization technology",
+      "category": "user",
+      "timestamp": 1770213116227,
+      "id": 1770213116227.4333
+    },
+    {
+      "text": "User had at least 2 meetings on Feb 3rd",
+      "category": "user",
+      "timestamp": 1770213146837,
+      "id": 1770213146837.5625
+    },
+    {
+      "text": "User has meetings related to 'Tech Services' and 'POC Demo'",
+      "category": "user",
+      "timestamp": 1770213146838,
+      "id": 1770213146838.1187
+    },
+    {
+      "text": "User wanted to move a POC Demo meeting from Feb 3rd to Feb 4th",
+      "category": "user",
+      "timestamp": 1770213146839,
+      "id": 1770213146839.4058
+    },
+    {
+      "text": "User wanted to exclude Tech Services meetings from being moved",
+      "category": "user",
+      "timestamp": 1770213146839,
+      "id": 1770213146839.3499
+    },
+    {
+      "text": "User has no meetings scheduled on February 4, 2026",
+      "category": "user",
+      "timestamp": 1770213348198,
+      "id": 1770213348198.0454
+    },
+    {
+      "text": "User attempted to reschedule meetings, suggesting they may use a calendar management system",
+      "category": "user",
+      "timestamp": 1770213348203,
+      "id": 1770213348203.3147
+    },
+    {
+      "text": "User has meetings tracked in a system",
+      "category": "user",
+      "timestamp": 1770213486007,
+      "id": 1770213486007.2095
+    },
+    {
+      "text": "User uses Notion database for scheduling/meeting management",
+      "category": "user",
+      "timestamp": 1770213486012,
+      "id": 1770213486012.9556
+    },
+    {
+      "text": "User had meetings scheduled for yesterday that need rescheduling",
+      "category": "user",
+      "timestamp": 1770213486013,
+      "id": 1770213486013.608
+    },
+    {
+      "text": "User works in or is associated with 'Tech Services'",
+      "category": "user",
+      "timestamp": 1770213508747,
+      "id": 1770213508747.118
+    },
+    {
+      "text": "User had meetings scheduled for February 3rd",
+      "category": "user",
+      "timestamp": 1770213508750,
+      "id": 1770213508750.666
+    },
+    {
+      "text": "User requested to move meetings to February 4th",
+      "category": "user",
+      "timestamp": 1770213508751,
+      "id": 1770213508751.422
+    },
+    {
+      "text": "User has a tech services meeting in their schedule",
+      "category": "user",
+      "timestamp": 1770214546039,
+      "id": 1770214546039.3154
+    },
+    {
+      "text": "User uses Notion database for managing meetings/calendar",
+      "category": "user",
+      "timestamp": 1770214546041,
+      "id": 1770214546041.4133
+    },
+    {
+      "text": "User refers to the meeting as 'my tech services meeting' (suggesting ownership or participation)",
+      "category": "user",
+      "timestamp": 1770214546042,
+      "id": 1770214546042.6611
+    },
+    {
+      "text": "User prefers less literal interpretations of their requests",
+      "category": "user",
+      "timestamp": 1770214567857,
+      "id": 1770214567857.6248
+    },
+    {
+      "text": "User had tech services meetings yesterday",
+      "category": "user",
+      "timestamp": 1770214567859,
+      "id": 1770214567859.233
+    },
+    {
+      "text": "User has at least two tech services meetings",
+      "category": "user",
+      "timestamp": 1770214567860,
+      "id": 1770214567860.851
+    },
+    {
+      "text": "User works in or with Tech Services department",
+      "category": "user",
+      "timestamp": 1770214611444,
+      "id": 1770214611444.691
+    },
+    {
+      "text": "User had meetings scheduled on February 3rd",
+      "category": "user",
+      "timestamp": 1770214611449,
+      "id": 1770214611449.8835
+    },
+    {
+      "text": "User has authority/ability to reschedule Tech Services meetings",
+      "category": "user",
+      "timestamp": 1770214611453,
+      "id": 1770214611453.8833
+    },
+    {
+      "text": "User has meetings that need to be managed",
+      "category": "user",
+      "timestamp": 1770214684367,
+      "id": 1770214684367.9653
+    },
+    {
+      "text": "User uses Notion database for organization/scheduling",
+      "category": "user",
+      "timestamp": 1770214684374,
+      "id": 1770214684374.6562
+    },
+    {
+      "text": "User expects their assistant to access their Notion database",
+      "category": "user",
+      "timestamp": 1770214684379,
+      "id": 1770214684379.6162
+    },
+    {
+      "text": "User had no meetings scheduled on Wednesday, February 4, 2026",
+      "category": "user",
+      "timestamp": 1770214707689,
+      "id": 1770214707689.1548
+    },
+    {
+      "text": "User has meetings scheduled in their calendar",
+      "category": "user",
+      "timestamp": 1770217483396,
+      "id": 1770217483396.3682
+    },
+    {
+      "text": "User had 2 meetings scheduled on Tuesday, February 3, 2026",
+      "category": "user",
+      "timestamp": 1770217483398,
+      "id": 1770217483398.3945
+    },
+    {
+      "text": "User's 'today' is Wednesday, February 4, 2026",
+      "category": "user",
+      "timestamp": 1770217483400,
+      "id": 1770217483400.9104
+    },
+    {
+      "text": "User appears to be the developer/creator of the assistant ('you put together')",
+      "category": "user",
+      "timestamp": 1770221365616,
+      "id": 1770221365616.5986
+    },
+    {
+      "text": "User has access to a Notion database that the assistant can access",
+      "category": "user",
+      "timestamp": 1770221365621,
+      "id": 1770221365621.8367
+    },
+    {
+      "text": "User is running version 1.2.4 of a 'Connection to Notion build'",
+      "category": "user",
+      "timestamp": 1770221365624,
+      "id": 1770221365624.8984
+    },
+    {
+      "text": "Assistant appears as an interface element in the bottom-right corner of user's screen",
+      "category": "user",
+      "timestamp": 1770221365627,
+      "id": 1770221365627.307
+    },
+    {
+      "text": "User's name is Stephen",
+      "category": "user",
+      "timestamp": 1770221394931,
+      "id": 1770221394931.8303
+    },
+    {
+      "text": "User has a scheduled calendar/task management system",
+      "category": "user",
+      "timestamp": 1770222920464,
+      "id": 1770222920464.1538
+    },
+    {
+      "text": "User has a task related to investigating Verizon phone line issues",
+      "category": "user",
+      "timestamp": 1770222920473,
+      "id": 1770222920473.367
+    },
+    {
+      "text": "User appears to work in a role that involves telecom/phone line management or auditing",
+      "category": "user",
+      "timestamp": 1770222920480,
+      "id": 1770222920480.6567
+    },
+    {
+      "text": "User's schedule shows a task at 11:45 AM (suggesting timezone context for future interactions)",
+      "category": "user",
+      "timestamp": 1770222920484,
+      "id": 1770222920484.4204
+    },
+    {
+      "text": "User's name is Stephen",
+      "category": "user",
+      "timestamp": 1770222955754,
+      "id": 1770222955754.8367
+    },
+    {
+      "text": "User has a lunch scheduled (originally at 12:00 PM)",
+      "category": "user",
+      "timestamp": 1770225941720,
+      "id": 1770225941720.5247
+    },
+    {
+      "text": "User prefers their lunch at 1:00 PM (at least for this instance)",
+      "category": "user",
+      "timestamp": 1770225941727,
+      "id": 1770225941727.8662
+    },
+    {
+      "text": "User has multiple lunch appointments/events in their calendar",
+      "category": "user",
+      "timestamp": 1770226126466,
+      "id": 1770226126466.1797
+    },
+    {
+      "text": "User prefers to reschedule events by specifying time rather than date/event details",
+      "category": "user",
+      "timestamp": 1770226126474,
+      "id": 1770226126474.0981
+    },
+    {
+      "text": "User has a lunch scheduled at 12:00 PM today",
+      "category": "user",
+      "timestamp": 1770226169676,
+      "id": 1770226169676.7883
+    },
+    {
+      "text": "User's lunch was moved to 1:00 PM",
+      "category": "user",
+      "timestamp": 1770226169677,
+      "id": 1770226169677.0994
+    },
+    {
+      "text": "User has or expects to have lunch appointments in their calendar",
+      "category": "user",
+      "timestamp": 1770226212021,
+      "id": 1770226212021.9639
+    },
+    {
+      "text": "User refers to events using natural language descriptions like 'todays lunch'",
+      "category": "user",
+      "timestamp": 1770226212022,
+      "id": 1770226212022.2917
+    },
+    {
+      "text": "User expects the assistant to have access to their calendar/schedule",
+      "category": "user",
+      "timestamp": 1770226212024,
+      "id": 1770226212024.4583
+    },
+    {
+      "text": "User has a lunch appointment/event in their calendar",
+      "category": "user",
+      "timestamp": 1770226232582,
+      "id": 1770226232582.997
+    },
+    {
+      "text": "User's schedule had at least one conflict that was resolved when moving the lunch appointment",
+      "category": "user",
+      "timestamp": 1770226232584,
+      "id": 1770226232584.5938
     }
   ],
   "topics": {
@@ -1986,9 +2376,13 @@
         {
           "text": "There was an attempt to move or modify a Notion page with ID 1a1671c2-6943-80c8-8b94-fd28d9c15c2c. The operation failed due to the page not being found or not being shared with the integration. The error suggests permission/sharing issues with the Notion integration.",
           "timestamp": 1770171281140
+        },
+        {
+          "text": "User is experiencing issues with Notion updates - either connectivity problems or silent call failures. Debugging may be in progress.",
+          "timestamp": 1770212145893
         }
       ],
-      "lastAccessed": 1770171281140
+      "lastAccessed": 1770212145893
     },
     "automation preferences": {
       "name": "Automation preferences",
@@ -3056,9 +3450,17 @@
         {
           "text": "User needed to reschedule a Tech Services meeting from February 3rd to February 4th using Notion",
           "timestamp": 1770173695738
+        },
+        {
+          "text": "User attempted to reschedule upcoming meetings from yesterday to today, but the assistant couldn't locate the meetings in the Notion database",
+          "timestamp": 1770213091711
+        },
+        {
+          "text": "User is actively rescheduling meetings, specifically moving a POC (Proof of Concept) Demo to a different day while keeping Tech Services meetings in their original time slot",
+          "timestamp": 1770213146841
         }
       ],
-      "lastAccessed": 1770173695738
+      "lastAccessed": 1770213146841
     },
     "calendar management": {
       "name": "Calendar Management",
@@ -3070,9 +3472,13 @@
         {
           "text": "User requested to reschedule a meeting from one day to the next",
           "timestamp": 1770173471530
+        },
+        {
+          "text": "User attempted to reschedule a lunch event to 1pm using natural language. The assistant could not find the event, suggesting either no matching event exists or the assistant lacks calendar access/search capability.",
+          "timestamp": 1770226212025
         }
       ],
-      "lastAccessed": 1770173471531
+      "lastAccessed": 1770226212025
     },
     "sharepoint document summarization": {
       "name": "SharePoint Document Summarization",
@@ -3080,9 +3486,169 @@
         {
           "text": "User is conducting a POC demo for SharePoint document summarization functionality",
           "timestamp": 1770174167479
+        },
+        {
+          "text": "User has a POC demo scheduled for this feature, indicating they're working on or evaluating document summarization capabilities within Sharepoint",
+          "timestamp": 1770213116229
+        },
+        {
+          "text": "User had a POC (Proof of Concept) demo meeting with someone named Jess regarding SharePoint document summarization functionality",
+          "timestamp": 1770213508754
+        },
+        {
+          "text": "Tech Services is working on or evaluating a POC (Proof of Concept) for SharePoint document summarization functionality",
+          "timestamp": 1770214611460
         }
       ],
-      "lastAccessed": 1770174167479
+      "lastAccessed": 1770214611460
+    },
+    "notion integration debugging": {
+      "name": "Notion integration debugging",
+      "entries": [
+        {
+          "text": "There is a Notion integration that was supposed to reschedule meetings but is currently broken. The issue involves either connection problems or failing `notion_update_page` calls. The integration was previously thought to be working but something is wrong with the actual update calls.",
+          "timestamp": 1770212112932
+        }
+      ],
+      "lastAccessed": 1770212112932
+    },
+    "calendar/meeting management": {
+      "name": "Calendar/Meeting Management",
+      "entries": [
+        {
+          "text": "User wants to reschedule a meeting from yesterday to today",
+          "timestamp": 1770212420783
+        },
+        {
+          "text": "User wants ability to reschedule meetings across dates",
+          "timestamp": 1770214684383
+        }
+      ],
+      "lastAccessed": 1770214684383
+    },
+    "notion integration setup": {
+      "name": "Notion Integration Setup",
+      "entries": [
+        {
+          "text": "The assistant requires Notion API key and database ID to be configured in settings before it can access and modify Notion database entries",
+          "timestamp": 1770212420784
+        }
+      ],
+      "lastAccessed": 1770212420784
+    },
+    "calendar/database management": {
+      "name": "Calendar/Database Management",
+      "entries": [
+        {
+          "text": "User was testing or troubleshooting database visibility with the assistant. The assistant was able to access the user's calendar data and could see Tech Services meetings.",
+          "timestamp": 1770212627216
+        }
+      ],
+      "lastAccessed": 1770212627216
+    },
+    "meeting management preferences": {
+      "name": "Meeting management preferences",
+      "entries": [
+        {
+          "text": "User wants meetings filtered to exclude Tech Services when rescheduling or organizing",
+          "timestamp": 1770213116228
+        }
+      ],
+      "lastAccessed": 1770213116228
+    },
+    "meeting management workflow": {
+      "name": "Meeting management workflow",
+      "entries": [
+        {
+          "text": "User attempts to reschedule meetings in bulk using natural language commands, suggesting they prefer efficiency and automation in calendar management",
+          "timestamp": 1770213486014
+        },
+        {
+          "text": "User attempted to reschedule a meeting from yesterday to today using natural language commands. The system searches a Notion database but failed to find a match for 'my tech services', indicating potential issues with exact string matching or database naming conventions.",
+          "timestamp": 1770214546043
+        }
+      ],
+      "lastAccessed": 1770214546043
+    },
+    "weekly team meeting": {
+      "name": "Weekly Team Meeting",
+      "entries": [
+        {
+          "text": "User has recurring weekly team meetings for Tech Services",
+          "timestamp": 1770213508753
+        }
+      ],
+      "lastAccessed": 1770213508753
+    },
+    "communication style preference": {
+      "name": "Communication style preference",
+      "entries": [
+        {
+          "text": "User wants the assistant to be less literal and more contextually aware when interpreting instructions",
+          "timestamp": 1770214567862
+        }
+      ],
+      "lastAccessed": 1770214567862
+    },
+    "tech services meetings": {
+      "name": "Tech Services meetings",
+      "entries": [
+        {
+          "text": "There are recurring Tech Services Weekly Team Meetings at 9:30 AM. There was also a POC Demo meeting at 10:00 AM about SharePoint document summarization involving someone named Jess",
+          "timestamp": 1770214611457
+        }
+      ],
+      "lastAccessed": 1770214611457
+    },
+    "notion integration": {
+      "name": "Notion Integration",
+      "entries": [
+        {
+          "text": "The assistant has Notion database access capability but failed to locate user's meetings - possible issues with database permissions, query terminology, or data structure",
+          "timestamp": 1770214684386
+        }
+      ],
+      "lastAccessed": 1770214684386
+    },
+    "ai assistant optimization": {
+      "name": "AI Assistant Optimization",
+      "entries": [
+        {
+          "text": "v1.2.4 update included: smart context loading (50-60% less token usage), switched to Claude Haiku 3 achieving 95% cost reduction ($0.024 to $0.002 per request), tiered memory system with core identity always loaded and on-demand retrieval, system prompt reduced 85% (6,474 to 962 characters), now loads 15-25 relevant facts instead of all 233+ per conversation",
+          "timestamp": 1770221394935
+        }
+      ],
+      "lastAccessed": 1770221394935
+    },
+    "memory management systems": {
+      "name": "Memory Management Systems",
+      "entries": [
+        {
+          "text": "Implementation uses tiered approach where core identity remains persistent while contextual information is retrieved selectively based on query relevance",
+          "timestamp": 1770221394936
+        }
+      ],
+      "lastAccessed": 1770221394936
+    },
+    "verizon phone line investigation": {
+      "name": "Verizon phone line investigation",
+      "entries": [
+        {
+          "text": "User has a scheduled task to investigate why certain users have more than 2 Verizon phone lines - suggests they work with telecom expense management, compliance, or IT administration",
+          "timestamp": 1770222920489
+        }
+      ],
+      "lastAccessed": 1770222920489
+    },
+    "calendar/schedule management": {
+      "name": "Calendar/Schedule Management",
+      "entries": [
+        {
+          "text": "User encountered ambiguity when trying to reschedule an event called 'Lunch' because multiple events with that name exist in their calendar",
+          "timestamp": 1770226126478
+        }
+      ],
+      "lastAccessed": 1770226126478
     }
   },
   "conversations": [
@@ -3353,7 +3919,107 @@
     {
       "summary": "User requested to reschedule 2 meetings from today to tomorrow: a weekly tech services team meeting and a POC demo with Jess about SharePoint document summarization",
       "timestamp": 1770174167516
+    },
+    {
+      "summary": "User is debugging a broken Notion integration that failed to reschedule meetings. The assistant identifies potential issues with the integration's update functionality and offers to help test or debug.",
+      "timestamp": 1770212112933
+    },
+    {
+      "summary": "User corrected Assistant's language use (requested no swearing). Conversation involves troubleshooting Notion API update issues, with Assistant offering to help test queries or assist with debugging.",
+      "timestamp": 1770212145895
+    },
+    {
+      "summary": "User attempted to move a Tech Services Meeting from yesterday to today, but the action failed because their Notion database integration is not yet configured. The assistant explained that API key and database ID setup is required first.",
+      "timestamp": 1770212420785
+    },
+    {
+      "summary": "User asked the assistant to verify database access. Assistant confirmed access by identifying Tech Services meetings and offered to reschedule a meeting from the previous day to the current day.",
+      "timestamp": 1770212627217
+    },
+    {
+      "summary": "User attempted to reschedule meetings using a Notion-integrated assistant, but the request failed because the meetings couldn't be found in the database. The user may have used imprecise language ('my upcoming meetings') or the meetings may not exist in the expected location.",
+      "timestamp": 1770213091713
+    },
+    {
+      "summary": "User requested to move meetings from yesterday to today but specifically excluded Tech Services meetings. Assistant identified 2 meetings, filtered out Tech Services, and moved only the Sharepoint Document Summarization POC demo with Jess.",
+      "timestamp": 1770213116230
+    },
+    {
+      "summary": "User requested to move meetings from yesterday (Feb 3rd) to today (Feb 4th), specifically the POC Demo meeting while excluding Tech Services meetings from the move",
+      "timestamp": 1770213146842
+    },
+    {
+      "summary": "User attempted to move meetings from February 4, 2026 to the next day, but no meetings were found on that date",
+      "timestamp": 1770213348208
+    },
+    {
+      "summary": "User attempted to bulk reschedule yesterday's meetings to today via natural language command, but the assistant failed to locate the meetings in the connected Notion database, indicating either a search/query issue or the meetings don't exist as expected.",
+      "timestamp": 1770213486015
+    },
+    {
+      "summary": "User requested assistance with 'Tech Services' which revealed two meetings from February 3rd: a weekly team meeting and a POC demo with Jess about SharePoint document summarization. Both meetings were being moved to February 4th.",
+      "timestamp": 1770213508755
+    },
+    {
+      "summary": "User attempted to reschedule a tech services meeting using a calendar assistant that integrates with Notion, but the system couldn't locate the meeting, likely due to naming/search mismatch between how the user refers to it ('my tech services') and how it's stored in the database.",
+      "timestamp": 1770214546044
+    },
+    {
+      "summary": "User corrected the assistant for being too literal, prompting the assistant to successfully identify and reschedule two tech services meetings from yesterday to today",
+      "timestamp": 1770214567863
+    },
+    {
+      "summary": "User inquired about Tech Services meetings, likely wanting to reschedule them from February 3rd to February 4th. The assistant identified two meetings: a weekly team meeting and a POC demo about SharePoint document summarization with Jess.",
+      "timestamp": 1770214611462
+    },
+    {
+      "summary": "User attempted to reschedule yesterday's meetings to today via their Notion database, but the assistant could not locate the meetings data. This reveals the user relies on Notion for meeting management and expects automated rescheduling capabilities.",
+      "timestamp": 1770214684387
+    },
+    {
+      "summary": "User attempted to reschedule meetings from one day to the next, but had no meetings on the specified date",
+      "timestamp": 1770214707691
+    },
+    {
+      "summary": "User requested to reschedule yesterday's meetings to today. Two meetings were successfully moved from February 3 to February 4, 2026.",
+      "timestamp": 1770217483401
+    },
+    {
+      "summary": "Casual greeting exchange where the assistant confirms it's operational and references the user's custom build (v1.2.4) with Notion integration. No substantive topics discussed yet - just an opening conversation.",
+      "timestamp": 1770221365628
+    },
+    {
+      "summary": "Stephen asked what had been updated. The assistant shared details about v1.2.4 release (Feb 3, 2026) focusing on cost optimization and efficiency improvements through smart context loading and model switching.",
+      "timestamp": 1770221394938
+    },
+    {
+      "summary": "User thanked the assistant after receiving a schedule reminder. The assistant confirmed an upcoming task at 11:45 AM regarding investigating Verizon phone line anomalies, indicating the user likely works in telecom management, IT administration, or corporate compliance.",
+      "timestamp": 1770222920491
+    },
+    {
+      "summary": "User declined assistance at this time. Assistant acknowledged and indicated availability for future help.",
+      "timestamp": 1770222955755
+    },
+    {
+      "summary": "User requested to reschedule their lunch appointment from 12:00 PM to 1:00 PM",
+      "timestamp": 1770225941735
+    },
+    {
+      "summary": "User attempted to reschedule a lunch event to 1pm but the assistant couldn't complete the action due to multiple events named 'Lunch' existing in the calendar, requiring clarification",
+      "timestamp": 1770226126481
+    },
+    {
+      "summary": "User requested information about today's lunch, which was scheduled for 12:00 PM and was moved to 1:00 PM",
+      "timestamp": 1770226169679
+    },
+    {
+      "summary": "User attempted to reschedule a lunch appointment to 1pm but the assistant could not locate the event in question. This reveals the user expects calendar integration and natural language event matching.",
+      "timestamp": 1770226212027
+    },
+    {
+      "summary": "User requested to reschedule their lunch event to 1pm for the current day. The assistant successfully moved the event and resolved a scheduling conflict.",
+      "timestamp": 1770226232586
     }
   ],
-  "lastUpdated": 1770174167516
+  "lastUpdated": 1770226232586
 }

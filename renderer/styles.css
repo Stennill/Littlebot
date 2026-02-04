@@ -15,7 +15,7 @@ html,body{height:100%;margin:0;width:auto;font-family:'Segoe UI', system-ui, -ap
 @keyframes rotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes particleFloat{0%{opacity:0;transform:scale(0) translate(0,0)}20%{opacity:1}100%{opacity:0;transform:scale(2) translate(calc(var(--tx, 0) * 30px),calc(var(--ty, -1) * 40px))}}
 
-#messages{flex:1;overflow-y:auto;padding:0 0 8px 0;display:flex;flex-direction:column-reverse;gap:6px;scrollbar-width:thin;scrollbar-color:rgba(88,236,255,0.3) rgba(255,255,255,0.05);justify-content:flex-start;min-height:0}
+#messages{flex:1;overflow-y:auto;padding:0 0 8px 0;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:rgba(88,236,255,0.3) rgba(255,255,255,0.05);justify-content:flex-start;min-height:0}
 #messages::-webkit-scrollbar{display:none}
 .message{margin:0;padding:6px 0;border-radius:0;max-width:100%;font-size:12px;line-height:1.4;color:rgba(255,255,255,0.95);animation:none;box-shadow:none;background:transparent;border:none}
 .message.user{color:rgba(124,243,255,0.95)}

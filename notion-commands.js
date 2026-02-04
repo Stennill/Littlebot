@@ -12,6 +12,86 @@ const notionManager = require('./notion-manager');
 async function parseNotionCommand(input) {
   const lower = input.toLowerCase().trim();
   
+  // Pattern: "move today's/tomorrow's meetings to [date]"
+  const bulkMeetingPattern = /(move|reschedule)\s+(today'?s?|tomorrow'?s?)\s+meetings?\s+to\s+(today|tomorrow|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
+  const bulkMatch = input.match(bulkMeetingPattern);
+  
+  if (bulkMatch) {
+    const sourceDate = bulkMatch[2].toLowerCase().replace(/['s]/g, '');
+    const targetDateWord = bulkMatch[3];
+    
+    const sourceDateISO = calculateDate(sourceDate);
+    const targetDateISO = calculateDate(targetDateWord);
+    
+    console.log(`   📅 Moving meetings from ${sourceDateISO} to ${targetDateISO}`);
+    
+    try {
+      const schema = await notionManager.getDatabaseSchema();
+      const dateProp = schema.properties.find(p => p.type === 'date');
+      
+      if (!dateProp) {
+        return `Error: Could not find date property in database`;
+      }
+      
+      console.log(`   📋 Using date property: ${dateProp.name}`);
+      
+      // Query for meetings on source date - try without the date filter first
+      const filter = {
+        and: [
+          {
+            property: 'Type',
+            select: {
+              equals: 'Meeting'
+            }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Processed'
+            }
+          }
+        ]
+      };
+      
+      console.log(`   🔍 Querying all unprocessed meetings...`);
+      
+      const allResults = await notionManager.queryDatabase(filter);
+      console.log(`   📊 Found ${allResults.length} total unprocessed meetings`);
+      
+      // Filter by date manually
+      const results = allResults.filter(page => {
+        const pageDate = page.properties[dateProp.name];
+        console.log(`      - ${page.properties.Name || page.properties.Title}: ${pageDate}`);
+        return pageDate === sourceDateISO;
+      });
+      
+      if (results.length === 0) {
+        return `No meetings found on ${formatDate(sourceDateISO)}`;
+      }
+      
+      // Update all meetings
+      const updateProps = {};
+      updateProps[dateProp.name] = {
+        type: 'date',
+        date: {
+          start: targetDateISO
+        }
+      };
+      
+      let updated = 0;
+      for (const page of results) {
+        await notionManager.updatePage(page.id, updateProps);
+        updated++;
+      }
+      
+      return `✅ Moved ${updated} meeting(s) from ${formatDate(sourceDateISO)} to ${formatDate(targetDateISO)}`;
+      
+    } catch (err) {
+      console.error('Bulk meeting move error:', err);
+      return `Error moving meetings: ${err.message}`;
+    }
+  }
+  
   // Pattern: "move [item name] (from [old date]) to [new date]"
   // More flexible - extracts item name intelligently
   const movePattern = /move\s+(.+?)\s+(?:from\s+(?:yesterday|today|tomorrow|last\s+\w+|next\s+\w+|\w+day)\s+)?to\s+(tomorrow|today|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
@@ -161,6 +241,15 @@ function formatDate(isoDate) {
   const date = new Date(isoDate + 'T00:00:00');
   const options = { month: 'long', day: 'numeric', year: 'numeric' };
   return date.toLocaleDateString('en-US', options);
+}
+
+/**
+ * Get next day in ISO format
+ */
+function getNextDay(isoDate) {
+  const date = new Date(isoDate + 'T00:00:00');
+  date.setDate(date.getDate() + 1);
+  return formatDateISO(date);
 }
 
 module.exports = {

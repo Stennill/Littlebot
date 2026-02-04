@@ -9,6 +9,7 @@ const settingsModal = document.getElementById('settingsModal');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const anthropicVersionInput = document.getElementById('anthropicVersionInput');
 const anthropicModelInput = document.getElementById('anthropicModelInput');
+const slackWebhookInput = document.getElementById('slackWebhookInput');
 const saveApiKey = document.getElementById('saveApiKey');
 const closeSettings = document.getElementById('closeSettings');
 const clearHistory = document.getElementById('clearHistory');
@@ -95,8 +96,8 @@ function appendMessage(who, text) {
     el.textContent = text;
   }
   
-  // Prepend to show newest at bottom (since column-reverse is used)
-  messages.insertBefore(el, messages.firstChild);
+  // Append to show newest at bottom
+  messages.appendChild(el);
   
   // Show panel and reset hide timer
   showPanel();
@@ -231,19 +232,20 @@ async function loadSettings() {
     const s = await window.electronAPI.getSettings();
     if (s) {
       if (s.anthropicKey) apiKeyInput.value = s.anthropicKey;
+      if (s.slackWebhook) slackWebhookInput.value = s.slackWebhook;
         voiceSettings = Object.assign(voiceSettings, s.voice || {});
         // Set default version if not present
         anthropicVersionInput.value = s.anthropicVersion || '2023-06-01';
-        anthropicModelInput.value = s.anthropicModel || 'claude-sonnet-4-5-20250929';
+        anthropicModelInput.value = s.anthropicModel || 'claude-3-haiku-20240307';
     } else {
       // Set defaults for first run
       anthropicVersionInput.value = '2023-06-01';
-      anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
+      anthropicModelInput.value = 'claude-3-haiku-20240307';
     }
   } catch (e) {
     // Set defaults on error
     anthropicVersionInput.value = '2023-06-01';
-    anthropicModelInput.value = 'claude-sonnet-4-5-20250929';
+    anthropicModelInput.value = 'claude-3-haiku-20240307';
   }
 }
 
@@ -506,10 +508,11 @@ if (clearHistory) {
 if (saveApiKey) {
   saveApiKey.addEventListener('click', async () => {
     const key = apiKeyInput.value.trim() || null;
+    const slackWebhook = slackWebhookInput.value.trim() || null;
     try {
       const version = anthropicVersionInput.value.trim() || null;
       const model = anthropicModelInput.value.trim() || null;
-      await window.electronAPI.setSettings({ anthropicKey: key, anthropicVersion: version, anthropicModel: model });
+      await window.electronAPI.setSettings({ anthropicKey: key, anthropicVersion: version, anthropicModel: model, slackWebhook: slackWebhook });
       settingsStatus.textContent = 'Saved.';
       setTimeout(() => settingsStatus.textContent = '', 2000);
     } catch (err) {
@@ -720,3 +723,15 @@ window.electronAPI.onTopicLearned((data) => {
   updateParticles(particlesToShow);
 });
 
+// Listen for event notifications
+window.electronAPI.onNotification((message) => {
+  console.log('[Event Notification]:', message);
+  
+  // Show panel if hidden
+  if (panel.classList.contains('hidden')) {
+    showPanel();
+  }
+  
+  // Display notification message from Arc
+  appendMessage('bot', message);
+});

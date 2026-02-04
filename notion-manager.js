@@ -78,13 +78,29 @@ class NotionManager {
       body.sorts = sorts;
     }
 
-    const data = await this.makeRequest(
-      `/databases/${this.databaseId}/query`,
-      'POST',
-      Object.keys(body).length > 0 ? body : {}
-    );
+    // Handle pagination - get ALL results
+    let allResults = [];
+    let hasMore = true;
+    let startCursor = undefined;
+    
+    while (hasMore) {
+      const requestBody = { ...body };
+      if (startCursor) {
+        requestBody.start_cursor = startCursor;
+      }
+      
+      const data = await this.makeRequest(
+        `/databases/${this.databaseId}/query`,
+        'POST',
+        Object.keys(requestBody).length > 0 ? requestBody : {}
+      );
+      
+      allResults = allResults.concat(data.results);
+      hasMore = data.has_more;
+      startCursor = data.next_cursor;
+    }
 
-    return this.formatResults(data.results);
+    return this.formatResults(allResults);
   }
 
   /**
@@ -249,7 +265,14 @@ class NotionManager {
       case 'multi_select':
         return prop.multi_select.map(s => s.name);
       case 'date':
-        return prop.date?.start || null;
+        // Return full date object with start and end
+        if (prop.date) {
+          return {
+            start: prop.date.start,
+            end: prop.date.end
+          };
+        }
+        return null;
       case 'checkbox':
         return prop.checkbox;
       case 'url':
