@@ -33,9 +33,9 @@ class SchedulerService {
         return { success: false, error: 'Missing required properties' };
       }
       
-      // Get all items that need scheduling (Status != Processed AND Status != "Needs Review" with old dates)
+      // Get all items that need scheduling (Status != Processed AND Status != Resolved)
       const unprocessedItems = await notionManager.queryDatabase({
-        or: [
+        and: [
           {
             property: 'Status',
             status: {
@@ -45,7 +45,7 @@ class SchedulerService {
           {
             property: 'Status',
             status: {
-              equals: 'Needs Review'
+              does_not_equal: 'Resolved'
             }
           }
         ]
@@ -103,13 +103,38 @@ class SchedulerService {
         return { success: true, scheduled: 0, message: 'No items to schedule' };
       }
       
-      // Get current schedule (all dated items)
+      // Get current schedule (all dated items, excluding Processed and Resolved)
       const scheduledItems = await notionManager.queryDatabase({
         and: [
           {
             property: 'Status',
             status: {
               does_not_equal: 'Processed'
+            }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Resolved'
+            }
+          },
+          {
+            property: dateProp.name,
+            date: {
+              is_not_empty: true
+            }
+          }
+        ]
+      });
+      
+      // CRITICAL: Also get ALL PTO items regardless of status
+      // PTO days must ALWAYS be blocked even if the PTO item is processed
+      const ptoItems = await notionManager.queryDatabase({
+        and: [
+          {
+            property: 'Type',
+            select: {
+              equals: 'PTO'
             }
           },
           {
@@ -122,9 +147,19 @@ class SchedulerService {
       });
       
       console.log(`   ${scheduledItems.length} items already scheduled`);
+      console.log(`   ${ptoItems.length} PTO days found (including processed)`);
       
-      // Build schedule map
-      const schedule = this.buildScheduleMap(scheduledItems, dateProp, schema);
+      // Build schedule map (includes all scheduled items + all PTO regardless of status)
+      const allItemsForSchedule = [...scheduledItems];
+      
+      // Add PTO items that aren't already in scheduledItems
+      for (const pto of ptoItems) {
+        if (!scheduledItems.find(item => item.id === pto.id)) {
+          allItemsForSchedule.push(pto);
+        }
+      }
+      
+      const schedule = this.buildScheduleMap(allItemsForSchedule, dateProp, schema);
       
       let scheduled = 0;
       const scheduledDetails = []; // Track scheduled items for notification

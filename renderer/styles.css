@@ -3,7 +3,7 @@ html,body{height:100%;margin:0;width:auto;font-family:'Segoe UI', system-ui, -ap
 /* App layout: panel on the left, bot separate on the right */
 #app{display:flex;align-items:flex-end;justify-content:flex-end;width:720px;max-height:calc(100vh - 100px);padding:14px;box-sizing:border-box;gap:14px;position:fixed;bottom:0;right:0}
 
-#panel{order:1;width:430px;height:auto;max-height:calc(100vh - 120px);background:rgba(10,20,35,0.85);backdrop-filter:blur(20px) saturate(180%);border-radius:10px;padding:10px 10px 10px 15px;box-shadow:0 8px 32px rgba(0,200,255,0.15),0 0 20px rgba(124,243,255,0.08),0 0 0 0.5px rgba(124,243,255,0.4) inset;display:flex;flex-direction:column;border:0.5px solid rgba(124,243,255,0.35);transition:opacity 0.3s, transform 0.3s;margin-bottom:10px;animation:slideInFromBottom 0.6s ease-out 1.8s backwards;overflow:visible}
+#panel{order:1;width:430px;height:auto;max-height:calc(100vh - 120px);background:rgba(10,20,35,0.85);backdrop-filter:blur(20px) saturate(180%);border-radius:10px;padding:5px 10px 10px 10px;box-shadow:0 8px 32px rgba(0,200,255,0.15),0 0 20px rgba(124,243,255,0.08),0 0 0 0.5px rgba(124,243,255,0.4) inset;display:flex;flex-direction:column;border:0.5px solid rgba(124,243,255,0.35);transition:opacity 0.3s, transform 0.3s;margin-bottom:10px;animation:slideInFromBottom 0.6s ease-out 1.8s backwards;overflow:visible}
 #panel.hidden{opacity:0;transform:translateY(20px);pointer-events:none;visibility:hidden}
 
 @keyframes slideInFromBottom{0%{transform:translateY(60px);opacity:0}100%{transform:translateY(0);opacity:1}}
@@ -27,7 +27,7 @@ html,body{height:100%;margin:0;width:auto;font-family:'Segoe UI', system-ui, -ap
 .message li::before{content:'•';position:absolute;left:-14px;color:rgba(147,197,253,0.9)}
 
 #controls{display:flex;gap:6px;margin-top:auto;align-items:stretch;position:relative;z-index:10}
-#input{flex:1;padding:10px 14px;border-radius:8px;border:0.5px solid rgba(124,243,255,0.2);background:rgba(0,50,80,0.3);backdrop-filter:blur(10px);font-size:12px;transition:all 0.2s;outline:none;color:rgba(255,255,255,0.95);min-width:0;margin:0}
+#input{flex:1;padding:5px 5px;border-radius:8px;border:0.5px solid rgba(124,243,255,0.2);background:rgba(0,50,80,0.3);backdrop-filter:blur(10px);font-size:12px;transition:all 0.2s;outline:none;color:rgba(255,255,255,0.95);min-width:0;margin:0}
 #input:focus{background:rgba(0,70,100,0.4);box-shadow:0 0 0 1px rgba(124,243,255,0.5),0 0 12px rgba(124,243,255,0.2);border-color:rgba(124,243,255,0.6)}
 #input::placeholder{color:rgba(255,255,255,0.35)}
 button{padding:8px 14px;border-radius:8px;border:0.5px solid rgba(124,243,255,0.4);background:linear-gradient(135deg,rgba(0,214,255,0.7) 0%,rgba(42,107,255,0.7) 100%);backdrop-filter:blur(10px);color:#fff;cursor:pointer;font-weight:600;font-size:12px;transition:all 0.2s;box-shadow:0 3px 10px rgba(124,243,255,0.25),0 0 8px rgba(124,243,255,0.15);display:flex;align-items:center;gap:5px}

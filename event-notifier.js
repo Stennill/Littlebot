@@ -41,12 +41,34 @@ class EventNotifier {
         return;
       }
 
-      // Get all events with dates
+      // Get all unprocessed events with dates (exclude Processed, Resolved, and Not Started)
       const items = await notionManager.queryDatabase({
-        property: dateProp.name,
-        date: {
-          is_not_empty: true
-        }
+        and: [
+          {
+            property: dateProp.name,
+            date: {
+              is_not_empty: true
+            }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Processed'
+            }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Resolved'
+            }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Not Started'
+            }
+          }
+        ]
       });
 
       const now = new Date();

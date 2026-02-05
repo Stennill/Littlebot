@@ -2261,6 +2261,1020 @@
       "category": "user",
       "timestamp": 1770226232584,
       "id": 1770226232584.5938
+    },
+    {
+      "text": "User has a Notion database called 'Inbox'",
+      "category": "user",
+      "timestamp": 1770243526180,
+      "id": 1770243526180.4668
+    },
+    {
+      "text": "User manages tasks, meetings, and calendar events in Notion",
+      "category": "user",
+      "timestamp": 1770243526204,
+      "id": 1770243526204.6697
+    },
+    {
+      "text": "User tracks event dates, status, type, and priority levels",
+      "category": "user",
+      "timestamp": 1770243526243,
+      "id": 1770243526243.0476
+    },
+    {
+      "text": "User has properties for 'Original Text' and 'Claude Summary' suggesting AI integration",
+      "category": "user",
+      "timestamp": 1770243526267,
+      "id": 1770243526267.9077
+    },
+    {
+      "text": "User tracks estimated time with a field containing a typo ('Estimated Mintues')",
+      "category": "user",
+      "timestamp": 1770243526308,
+      "id": 1770243526308.328
+    },
+    {
+      "text": "User has workflow tracking with checkboxes for tasks_created, meeting_complete, and requested_pto",
+      "category": "user",
+      "timestamp": 1770243526337,
+      "id": 1770243526337.1196
+    },
+    {
+      "text": "User uses project references (project_ref property)",
+      "category": "user",
+      "timestamp": 1770243526363,
+      "id": 1770243526363.6106
+    },
+    {
+      "text": "User tracks items by Source and UID",
+      "category": "user",
+      "timestamp": 1770243526391,
+      "id": 1770243526391.0679
+    },
+    {
+      "text": "User has a Tech Services meeting scheduled for tomorrow",
+      "category": "user",
+      "timestamp": 1770243809656,
+      "id": 1770243809656.475
+    },
+    {
+      "text": "User has access to or involvement with Tech Services team/department",
+      "category": "user",
+      "timestamp": 1770243809661,
+      "id": 1770243809661.7031
+    },
+    {
+      "text": "User has a 'Tech Services meeting' scheduled for tomorrow",
+      "category": "user",
+      "timestamp": 1770243849057,
+      "id": 1770243849057.8608
+    },
+    {
+      "text": "User is likely in a professional/work environment where they schedule meetings",
+      "category": "user",
+      "timestamp": 1770243849063,
+      "id": 1770243849063.7898
+    },
+    {
+      "text": "User has a Tech Services meeting tomorrow",
+      "category": "user",
+      "timestamp": 1770243870244,
+      "id": 1770243870244.3152
+    },
+    {
+      "text": "The meeting is scheduled for 3:30 PM (not 3:00 PM as initially shown)",
+      "category": "user",
+      "timestamp": 1770243870249,
+      "id": 1770243870249.359
+    },
+    {
+      "text": "The meeting duration is 15 minutes (not 30 minutes as initially shown)",
+      "category": "user",
+      "timestamp": 1770243870276,
+      "id": 1770243870276.8928
+    },
+    {
+      "text": "User has authority to modify meeting schedules",
+      "category": "user",
+      "timestamp": 1770243892669,
+      "id": 1770243892669.5867
+    },
+    {
+      "text": "User is involved with Tech Services meetings",
+      "category": "user",
+      "timestamp": 1770243892675,
+      "id": 1770243892675.9568
+    },
+    {
+      "text": "User prefers direct confirmation without verification when they state something is done",
+      "category": "user",
+      "timestamp": 1770243892711,
+      "id": 1770243892711.9062
+    },
+    {
+      "text": "User is already receiving task and meeting reminders from the assistant",
+      "category": "user",
+      "timestamp": 1770249224868,
+      "id": 1770249224868.453
+    },
+    {
+      "text": "User has a Notion database that tracks meetings",
+      "category": "user",
+      "timestamp": 1770249224872,
+      "id": 1770249224872.5007
+    },
+    {
+      "text": "User's Notion database has a Status field and a meeting_complete checkbox",
+      "category": "user",
+      "timestamp": 1770249224900,
+      "id": 1770249224900.4463
+    },
+    {
+      "text": "User is exploring ways to improve their workflow for tracking completed meetings",
+      "category": "user",
+      "timestamp": 1770249224929,
+      "id": 1770249224929.0793
+    },
+    {
+      "text": "User is interested in voice integration",
+      "category": "user",
+      "timestamp": 1770249281261,
+      "id": 1770249281261.047
+    },
+    {
+      "text": "User has attempted voice integration but been unsuccessful",
+      "category": "user",
+      "timestamp": 1770249281265,
+      "id": 1770249281265.0962
+    },
+    {
+      "text": "User has meetings that they take notes for",
+      "category": "user",
+      "timestamp": 1770249463873,
+      "id": 1770249463873.2412
+    },
+    {
+      "text": "User has a checkbox field called 'meeting_complete' in their system",
+      "category": "user",
+      "timestamp": 1770249463880,
+      "id": 1770249463880.6128
+    },
+    {
+      "text": "User has an automation workflow that triggers when meeting_complete is checked",
+      "category": "user",
+      "timestamp": 1770249463912,
+      "id": 1770249463912.2307
+    },
+    {
+      "text": "User has a 'Tech Services' meeting in their schedule",
+      "category": "user",
+      "timestamp": 1770249463942,
+      "id": 1770249463942.988
+    },
+    {
+      "text": "User has built some kind of productivity/meeting management ecosystem",
+      "category": "user",
+      "timestamp": 1770249463968,
+      "id": 1770249463968.37
+    },
+    {
+      "text": "User was active near midnight",
+      "category": "user",
+      "timestamp": 1770266372888,
+      "id": 1770266372888.4712
+    },
+    {
+      "text": "User has sent double messages in the past (pattern noted by assistant)",
+      "category": "user",
+      "timestamp": 1770266372935,
+      "id": 1770266372935.9978
+    },
+    {
+      "text": "User is working on or involved with something called 'LittleBot'",
+      "category": "user",
+      "timestamp": 1770266372962,
+      "id": 1770266372962.931
+    },
+    {
+      "text": "User refers to the assistant as being in their 'bottom-right corner' (likely UI positioning)",
+      "category": "user",
+      "timestamp": 1770266372983,
+      "id": 1770266372983.0486
+    },
+    {
+      "text": "User is testing something called 'Arc' (possibly Arc browser or similar)",
+      "category": "user",
+      "timestamp": 1770266413488,
+      "id": 1770266413488.2512
+    },
+    {
+      "text": "User was sending messages around quarter to midnight their time",
+      "category": "user",
+      "timestamp": 1770266413495,
+      "id": 1770266413495.825
+    },
+    {
+      "text": "User is using Arc browser",
+      "category": "user",
+      "timestamp": 1770266495365,
+      "id": 1770266495365.8079
+    },
+    {
+      "text": "User has a habit of sending double messages",
+      "category": "user",
+      "timestamp": 1770266495373,
+      "id": 1770266495373.4373
+    },
+    {
+      "text": "Interaction occurred at 11:41 PM on a Wednesday night",
+      "category": "user",
+      "timestamp": 1770266495412,
+      "id": 1770266495412.8013
+    },
+    {
+      "text": "Assistant appears to be integrated into user's taskbar (bottom-right corner)",
+      "category": "user",
+      "timestamp": 1770266495445,
+      "id": 1770266495445.5342
+    },
+    {
+      "text": "User has access to Notion (implied by assistant's reference to 'Notion pages')",
+      "category": "user",
+      "timestamp": 1770266495472,
+      "id": 1770266495472.1873
+    },
+    {
+      "text": "User is a developer",
+      "category": "user",
+      "timestamp": 1770266629957,
+      "id": 1770266629957.49
+    },
+    {
+      "text": "User was testing at nearly midnight on a Wednesday",
+      "category": "user",
+      "timestamp": 1770266629963,
+      "id": 1770266629963.7756
+    },
+    {
+      "text": "User has been sending double messages",
+      "category": "user",
+      "timestamp": 1770266629991,
+      "id": 1770266629991.4573
+    },
+    {
+      "text": "User has a task scheduled for 8:30am tomorrow",
+      "category": "user",
+      "timestamp": 1770266679779,
+      "id": 1770266679779.5813
+    },
+    {
+      "text": "User uses Notion database for task management",
+      "category": "user",
+      "timestamp": 1770266679784,
+      "id": 1770266679784.6304
+    },
+    {
+      "text": "User wants to reschedule tasks to Friday",
+      "category": "user",
+      "timestamp": 1770266679816,
+      "id": 1770266679816.6758
+    },
+    {
+      "text": "User uses Notion database for scheduling/task management",
+      "category": "user",
+      "timestamp": 1770266706714,
+      "id": 1770266706714.0952
+    },
+    {
+      "text": "User expects to have schedule information accessible through the assistant",
+      "category": "user",
+      "timestamp": 1770266706723,
+      "id": 1770266706723.5066
+    },
+    {
+      "text": "User has a Notion database for calendar/task management",
+      "category": "user",
+      "timestamp": 1770266826595,
+      "id": 1770266826595.8455
+    },
+    {
+      "text": "User has a scheduled item '8:30-9:00am - Email: pricing request for tenfold' that they want to move",
+      "category": "user",
+      "timestamp": 1770266826601,
+      "id": 1770266826601.1538
+    },
+    {
+      "text": "User wants to reschedule this item to Friday",
+      "category": "user",
+      "timestamp": 1770266826641,
+      "id": 1770266826641.1553
+    },
+    {
+      "text": "User has a Notion database",
+      "category": "user",
+      "timestamp": 1770266853445,
+      "id": 1770266853445.6228
+    },
+    {
+      "text": "User receives pricing requests related to a product/company called 'tenfold'",
+      "category": "user",
+      "timestamp": 1770266853450,
+      "id": 1770266853450.7246
+    },
+    {
+      "text": "User attempts to schedule or organize emails using natural language commands",
+      "category": "user",
+      "timestamp": 1770266853509,
+      "id": 1770266853509.9912
+    },
+    {
+      "text": "User uses email for business communications",
+      "category": "user",
+      "timestamp": 1770266896998,
+      "id": 1770266896998.5247
+    },
+    {
+      "text": "User is involved in pricing/sales discussions",
+      "category": "user",
+      "timestamp": 1770266897005,
+      "id": 1770266897005.6658
+    },
+    {
+      "text": "User has interest in or connection to a company/product called 'tenfold'",
+      "category": "user",
+      "timestamp": 1770266897046,
+      "id": 1770266897046.0945
+    },
+    {
+      "text": "User organizes tasks/emails by moving them to specific days",
+      "category": "user",
+      "timestamp": 1770266897090,
+      "id": 1770266897090.485
+    },
+    {
+      "text": "User has a task or item called 'TenFold Quote'",
+      "category": "user",
+      "timestamp": 1770266920622,
+      "id": 1770266920622.148
+    },
+    {
+      "text": "User is organizing tasks/events with date-based scheduling",
+      "category": "user",
+      "timestamp": 1770266920630,
+      "id": 1770266920630.0784
+    },
+    {
+      "text": "User refers to days by name (Friday) rather than full dates when scheduling",
+      "category": "user",
+      "timestamp": 1770266920670,
+      "id": 1770266920670.5068
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770299116504,
+      "id": 1770299116504.376
+    },
+    {
+      "text": "User uses Notion database for task/project management",
+      "category": "user",
+      "timestamp": 1770299116509,
+      "id": 1770299116509.393
+    },
+    {
+      "text": "User has a project called 'LittleBot'",
+      "category": "user",
+      "timestamp": 1770299116531,
+      "id": 1770299116531.9844
+    },
+    {
+      "text": "User has items they've been 'shuffling around' in Notion (suggesting task management habits)",
+      "category": "user",
+      "timestamp": 1770299116550,
+      "id": 1770299116550.2664
+    },
+    {
+      "text": "User has meetings to manage",
+      "category": "user",
+      "timestamp": 1770299116568,
+      "id": 1770299116568.729
+    },
+    {
+      "text": "User interacts with assistant named 'Arc' (styled after Iron Man's Arc Reactor)",
+      "category": "user",
+      "timestamp": 1770299116585,
+      "id": 1770299116585.5066
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770299763193,
+      "id": 1770299763193.489
+    },
+    {
+      "text": "User has a task/meeting called 'TenFold Quote' (possibly related to business/sales quotes)",
+      "category": "user",
+      "timestamp": 1770299763199,
+      "id": 1770299763199.8223
+    },
+    {
+      "text": "User was originally scheduled to handle the TenFold Quote today but needed to postpone",
+      "category": "user",
+      "timestamp": 1770299763230,
+      "id": 1770299763230.97
+    },
+    {
+      "text": "User's schedule includes Tuesday, February 11th at 9:10 AM as an available time slot",
+      "category": "user",
+      "timestamp": 1770299763247,
+      "id": 1770299763247.752
+    },
+    {
+      "text": "User appears to have demanding/competing priorities that required rescheduling",
+      "category": "user",
+      "timestamp": 1770299763264,
+      "id": 1770299763264.875
+    },
+    {
+      "text": "User has tasks or items labeled as 'tenfold'",
+      "category": "user",
+      "timestamp": 1770299826077,
+      "id": 1770299826077.4263
+    },
+    {
+      "text": "User wants to reschedule tenfold-related items to next week",
+      "category": "user",
+      "timestamp": 1770299826083,
+      "id": 1770299826083.158
+    },
+    {
+      "text": "User has a Notion database",
+      "category": "user",
+      "timestamp": 1770300460464,
+      "id": 1770300460464.6536
+    },
+    {
+      "text": "User uses voice commands or casual language for task management",
+      "category": "user",
+      "timestamp": 1770300460467,
+      "id": 1770300460467.7654
+    },
+    {
+      "text": "User uses Notion database for task/item management",
+      "category": "user",
+      "timestamp": 1770300822599,
+      "id": 1770300822599.0645
+    },
+    {
+      "text": "User expects to be able to reference items contextually (e.g., 'all these items')",
+      "category": "user",
+      "timestamp": 1770300822607,
+      "id": 1770300822607.7598
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770300839908,
+      "id": 1770300839908.1582
+    },
+    {
+      "text": "User has a task list with items labeled as 'Tenfold'",
+      "category": "user",
+      "timestamp": 1770300839914,
+      "id": 1770300839914.224
+    },
+    {
+      "text": "User uses a calendar/scheduling system that tracks capacity",
+      "category": "user",
+      "timestamp": 1770300839944,
+      "id": 1770300839944.4568
+    },
+    {
+      "text": "User's calendar reference point suggests the current timeframe is early February 2025 (with February 10th being the upcoming Monday)",
+      "category": "user",
+      "timestamp": 1770300839968,
+      "id": 1770300839968.6887
+    },
+    {
+      "text": "User has a title/preference of being addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770300860128,
+      "id": 1770300860128.7012
+    },
+    {
+      "text": "User uses a task management system with 'Tenfold items'",
+      "category": "user",
+      "timestamp": 1770300860137,
+      "id": 1770300860137.5593
+    },
+    {
+      "text": "User had five Tenfold items scheduled for today that are being rescheduled",
+      "category": "user",
+      "timestamp": 1770300860156,
+      "id": 1770300860156.3445
+    },
+    {
+      "text": "User has a Notion database",
+      "category": "user",
+      "timestamp": 1770300896796,
+      "id": 1770300896796.6514
+    },
+    {
+      "text": "User has items or tasks labeled as 'the tenfold items' or 'tenfold items'",
+      "category": "user",
+      "timestamp": 1770300896801,
+      "id": 1770300896801
+    },
+    {
+      "text": "User manages tasks/items with weekly scheduling",
+      "category": "user",
+      "timestamp": 1770300896819,
+      "id": 1770300896819.2373
+    },
+    {
+      "text": "User has a business relationship or interaction with a company/product called 'tenfold'",
+      "category": "user",
+      "timestamp": 1770300915762,
+      "id": 1770300915762.9512
+    },
+    {
+      "text": "User is dealing with pricing-related communications",
+      "category": "user",
+      "timestamp": 1770300915764,
+      "id": 1770300915764.244
+    },
+    {
+      "text": "User manages tasks/emails with scheduling features",
+      "category": "user",
+      "timestamp": 1770300915775,
+      "id": 1770300915775.57
+    },
+    {
+      "text": "User has a task related to Tenfold Configuration",
+      "category": "user",
+      "timestamp": 1770300967063,
+      "id": 1770300967063.6619
+    },
+    {
+      "text": "User is involved in setting up remote access solutions",
+      "category": "user",
+      "timestamp": 1770300967065,
+      "id": 1770300967065.1655
+    },
+    {
+      "text": "User is planning work at least into February 2026",
+      "category": "user",
+      "timestamp": 1770300967079,
+      "id": 1770300967079.5789
+    },
+    {
+      "text": "User works with or manages someone named Gary",
+      "category": "user",
+      "timestamp": 1770300983426,
+      "id": 1770300983426.9172
+    },
+    {
+      "text": "User is involved in server infrastructure decisions",
+      "category": "user",
+      "timestamp": 1770300983430,
+      "id": 1770300983430.8572
+    },
+    {
+      "text": "User's organization uses or is implementing Tenfold database",
+      "category": "user",
+      "timestamp": 1770300983443,
+      "id": 1770300983443.7703
+    },
+    {
+      "text": "User has task management/scheduling responsibilities",
+      "category": "user",
+      "timestamp": 1770300983457,
+      "id": 1770300983457.1565
+    },
+    {
+      "text": "User has a task or project called 'Tenfold Requirements'",
+      "category": "user",
+      "timestamp": 1770300998899,
+      "id": 1770300998899.1182
+    },
+    {
+      "text": "User is actively managing and rescheduling tasks",
+      "category": "user",
+      "timestamp": 1770300998903,
+      "id": 1770300998903.1335
+    },
+    {
+      "text": "User's current timeframe of planning extends to at least February 2026",
+      "category": "user",
+      "timestamp": 1770300998916,
+      "id": 1770300998916.262
+    },
+    {
+      "text": "User has a project called 'Tenfold Application Installation Project'",
+      "category": "user",
+      "timestamp": 1770301012988,
+      "id": 1770301012988.4246
+    },
+    {
+      "text": "User is managing or involved in a Tenfold application installation",
+      "category": "user",
+      "timestamp": 1770301012995,
+      "id": 1770301012995.3735
+    },
+    {
+      "text": "User is actively managing project timelines and schedules",
+      "category": "user",
+      "timestamp": 1770301013031,
+      "id": 1770301013031.0964
+    },
+    {
+      "text": "User refers to the assistant as 'Arc'",
+      "category": "user",
+      "timestamp": 1770306121536,
+      "id": 1770306121536.4636
+    },
+    {
+      "text": "User appears to have established rapport with the assistant, using casual/familiar tone",
+      "category": "user",
+      "timestamp": 1770306121543,
+      "id": 1770306121543.9275
+    },
+    {
+      "text": "User prefers the assistant to be less chaotic/more focused",
+      "category": "user",
+      "timestamp": 1770306121575,
+      "id": 1770306121575.7922
+    },
+    {
+      "text": "User prefers direct, focused communication without 'theatrical fanfare'",
+      "category": "user",
+      "timestamp": 1770306201593,
+      "id": 1770306201593.762
+    },
+    {
+      "text": "User has scheduled activities including 'Lunch' and 'Post Work Review'",
+      "category": "user",
+      "timestamp": 1770306201601,
+      "id": 1770306201601.832
+    },
+    {
+      "text": "User is addressed as 'Sir' by the assistant",
+      "category": "user",
+      "timestamp": 1770306201662,
+      "id": 1770306201662.7202
+    },
+    {
+      "text": "User has a meeting or event called 'Post Work Review'",
+      "category": "user",
+      "timestamp": 1770306248993,
+      "id": 1770306248993.2468
+    },
+    {
+      "text": "User prefers this meeting to be scheduled at 12:15",
+      "category": "user",
+      "timestamp": 1770306249000,
+      "id": 1770306249000.6084
+    },
+    {
+      "text": "User prefers this meeting to be 15 minutes in duration",
+      "category": "user",
+      "timestamp": 1770306249032,
+      "id": 1770306249032.6135
+    },
+    {
+      "text": "User has a Notion database that Arc manages",
+      "category": "user",
+      "timestamp": 1770309063743,
+      "id": 1770309063743.7148
+    },
+    {
+      "text": "User has a busy schedule with six different commitments today",
+      "category": "user",
+      "timestamp": 1770309063753,
+      "id": 1770309063753.6868
+    },
+    {
+      "text": "User is juggling four ongoing projects",
+      "category": "user",
+      "timestamp": 1770309063779,
+      "id": 1770309063779.9978
+    },
+    {
+      "text": "User has a 'Post Work Review' scheduled (moved to 12:15 PM, 15 minutes duration)",
+      "category": "user",
+      "timestamp": 1770309063789,
+      "id": 1770309063789.477
+    },
+    {
+      "text": "User has a lunch appointment that was conflicting with the Post Work Review",
+      "category": "user",
+      "timestamp": 1770309063802,
+      "id": 1770309063802.231
+    },
+    {
+      "text": "User addresses the assistant as 'Arc' and is addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770309063814,
+      "id": 1770309063814.93
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770310762115,
+      "id": 1770310762115.229
+    },
+    {
+      "text": "User uses Notion for task management",
+      "category": "user",
+      "timestamp": 1770310762121,
+      "id": 1770310762121.7285
+    },
+    {
+      "text": "User has a Notion database set up for tasks",
+      "category": "user",
+      "timestamp": 1770310762140,
+      "id": 1770310762140.144
+    },
+    {
+      "text": "Default task duration is set to 30 minutes in user's system",
+      "category": "user",
+      "timestamp": 1770310762151,
+      "id": 1770310762151.11
+    },
+    {
+      "text": "New tasks are typically set to 'Unprocessed' status by default",
+      "category": "user",
+      "timestamp": 1770310762165,
+      "id": 1770310762165.476
+    },
+    {
+      "text": "User has a contact/colleague named Arlene",
+      "category": "user",
+      "timestamp": 1770310834963,
+      "id": 1770310834963.21
+    },
+    {
+      "text": "User has a busy schedule today",
+      "category": "user",
+      "timestamp": 1770310834971,
+      "id": 1770310834971.1528
+    },
+    {
+      "text": "User is addressed as 'Sir' by their assistant",
+      "category": "user",
+      "timestamp": 1770310835001,
+      "id": 1770310835001.5037
+    },
+    {
+      "text": "User has an assistant managing their calendar",
+      "category": "user",
+      "timestamp": 1770310835026,
+      "id": 1770310835026.2576
+    },
+    {
+      "text": "User has a scheduled meeting/task with someone named Arlene",
+      "category": "user",
+      "timestamp": 1770310903751,
+      "id": 1770310903751.0261
+    },
+    {
+      "text": "User has a task related to 'copilot' (likely Microsoft Copilot or similar tool)",
+      "category": "user",
+      "timestamp": 1770310903759,
+      "id": 1770310903759.1929
+    },
+    {
+      "text": "User wants to remove/delete this scheduled item",
+      "category": "user",
+      "timestamp": 1770310903779,
+      "id": 1770310903779.0378
+    },
+    {
+      "text": "User has a contact or acquaintance named Arlene",
+      "category": "user",
+      "timestamp": 1770310959933,
+      "id": 1770310959933.9978
+    },
+    {
+      "text": "User had a scheduled meeting or conversation with Arlene about Copilot",
+      "category": "user",
+      "timestamp": 1770310959940,
+      "id": 1770310959940.0305
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770311018161,
+      "id": 1770311018161.7722
+    },
+    {
+      "text": "User has a Notion database",
+      "category": "user",
+      "timestamp": 1770311018167,
+      "id": 1770311018167.7556
+    },
+    {
+      "text": "User had a task/item about 'Get with Arlene about copilot'",
+      "category": "user",
+      "timestamp": 1770311018201,
+      "id": 1770311018201.806
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770311573301,
+      "id": 1770311573301.1729
+    },
+    {
+      "text": "User's timezone appears to be Eastern (ET)",
+      "category": "user",
+      "timestamp": 1770311573304,
+      "id": 1770311573304.006
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770311702515,
+      "id": 1770311702515.0862
+    },
+    {
+      "text": "User coined the phrase 'Intelligence is acquired not given'",
+      "category": "user",
+      "timestamp": 1770311702522,
+      "id": 1770311702522.28
+    },
+    {
+      "text": "User holds the philosophical view that intelligence is earned through effort and experience rather than innate",
+      "category": "user",
+      "timestamp": 1770311702556,
+      "id": 1770311702556.6687
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770311769295,
+      "id": 1770311769295.8213
+    },
+    {
+      "text": "User created the philosophical statement: 'Intelligence is acquired not given'",
+      "category": "user",
+      "timestamp": 1770311769302,
+      "id": 1770311769302.5496
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770311835186,
+      "id": 1770311835186.026
+    },
+    {
+      "text": "User created or referenced a phrase: 'Intelligence is acquired not given'",
+      "category": "user",
+      "timestamp": 1770311835192,
+      "id": 1770311835192.1853
+    },
+    {
+      "text": "User is concerned with presentation quality and correctness",
+      "category": "user",
+      "timestamp": 1770311835209,
+      "id": 1770311835209.9595
+    },
+    {
+      "text": "User is working on or has worked on a project called 'LittleBot'",
+      "category": "user",
+      "timestamp": 1770311871595,
+      "id": 1770311871595.2021
+    },
+    {
+      "text": "User appears to have experience with programming/software development",
+      "category": "user",
+      "timestamp": 1770311871602,
+      "id": 1770311871602.2188
+    },
+    {
+      "text": "User is building a project called 'LittleBot'",
+      "category": "user",
+      "timestamp": 1770311903883,
+      "id": 1770311903883.5151
+    },
+    {
+      "text": "LittleBot uses memory systems and JSON files for storage",
+      "category": "user",
+      "timestamp": 1770311903891,
+      "id": 1770311903891.033
+    },
+    {
+      "text": "User is making Claude API calls as part of the project",
+      "category": "user",
+      "timestamp": 1770311903908,
+      "id": 1770311903908.8433
+    },
+    {
+      "text": "User prefers a more relaxed/casual communication style",
+      "category": "user",
+      "timestamp": 1770311903921,
+      "id": 1770311903921.702
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770311927803,
+      "id": 1770311927803.5151
+    },
+    {
+      "text": "User has a Notion schedule that the assistant can access",
+      "category": "user",
+      "timestamp": 1770311955882,
+      "id": 1770311955882.975
+    },
+    {
+      "text": "User is addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770311955887,
+      "id": 1770311955887.1252
+    },
+    {
+      "text": "User has board members whose cellular iPad usage they review",
+      "category": "user",
+      "timestamp": 1770311955902,
+      "id": 1770311955902.5605
+    },
+    {
+      "text": "User has a structured daily schedule with specific time blocks",
+      "category": "user",
+      "timestamp": 1770311955917,
+      "id": 1770311955917.3953
+    },
+    {
+      "text": "Conversation takes place on Thursday, February 5, 2026 at approximately 12:12 PM",
+      "category": "user",
+      "timestamp": 1770311955929,
+      "id": 1770311955929.5613
+    },
+    {
+      "text": "User has a structured work schedule with multiple meetings and tasks",
+      "category": "user",
+      "timestamp": 1770312015271,
+      "id": 1770312015271.6445
+    },
+    {
+      "text": "User works with colleagues named Arlene, Debbie Kennedy, and Jillian",
+      "category": "user",
+      "timestamp": 1770312015279,
+      "id": 1770312015279.123
+    },
+    {
+      "text": "User's role involves technical responsibilities (SharePoint, Copilot training, tech services)",
+      "category": "user",
+      "timestamp": 1770312015314,
+      "id": 1770312015314.9077
+    },
+    {
+      "text": "User has responsibility related to Board Members' cellular/iPad usage",
+      "category": "user",
+      "timestamp": 1770312015332,
+      "id": 1770312015332.868
+    },
+    {
+      "text": "User attends a weekly Tech Services team meeting",
+      "category": "user",
+      "timestamp": 1770312015345,
+      "id": 1770312015345.487
+    },
+    {
+      "text": "User is referred to as 'Sir' by the assistant",
+      "category": "user",
+      "timestamp": 1770312015355,
+      "id": 1770312015355.5066
+    },
+    {
+      "text": "User has all-day projects including Tenfold and SharePoint Documentation Strategy",
+      "category": "user",
+      "timestamp": 1770312015370,
+      "id": 1770312015370.9778
+    },
+    {
+      "text": "User had lunch from 11:30 AM to 12:15 PM on this day (Thursday, February 5, 2026)",
+      "category": "user",
+      "timestamp": 1770312015384,
+      "id": 1770312015384.636
+    },
+    {
+      "text": "User prefers to be addressed as 'Sir'",
+      "category": "user",
+      "timestamp": 1770312067060,
+      "id": 1770312067060.2932
+    },
+    {
+      "text": "User has a Notion calendar that the assistant can potentially access",
+      "category": "user",
+      "timestamp": 1770312067067,
+      "id": 1770312067067.919
+    },
+    {
+      "text": "User values accuracy and honesty - does not tolerate fabricated information",
+      "category": "user",
+      "timestamp": 1770312067123,
+      "id": 1770312067123.4883
     }
   ],
   "topics": {
@@ -2578,9 +3592,13 @@
         {
           "text": "User is organizing a Notion database, likely for documenting features, tracking improvements, or organizing development tasks related to LittleBot. Assistant offered help with database structure, organizing development notes, and creating views/filters.",
           "timestamp": 1770064003344
+        },
+        {
+          "text": "User is managing tasks in Notion and requested deletion of an item about contacting Arlene regarding copilot",
+          "timestamp": 1770311018217
         }
       ],
-      "lastAccessed": 1770064003344
+      "lastAccessed": 1770311018217
     },
     "assistant version history": {
       "name": "Assistant Version History",
@@ -3428,9 +4446,13 @@
         {
           "text": "User attempted to reschedule a tech services meeting to the following day",
           "timestamp": 1770172196666
+        },
+        {
+          "text": "User requested a meeting time change to 3:30 PM - 3:45 PM (15 minutes duration). The assistant initially failed to make the change, requiring the user to point this out.",
+          "timestamp": 1770243849089
         }
       ],
-      "lastAccessed": 1770172196666
+      "lastAccessed": 1770243849089
     },
     "meeting management": {
       "name": "Meeting management",
@@ -3458,9 +4480,13 @@
         {
           "text": "User is actively rescheduling meetings, specifically moving a POC (Proof of Concept) Demo to a different day while keeping Tech Services meetings in their original time slot",
           "timestamp": 1770213146841
+        },
+        {
+          "text": "Tech Services meeting was rescheduled to 3:30 PM - 3:45 PM (15 minutes duration) for the following day. User confirmed the change was already made and requested no double-checking.",
+          "timestamp": 1770243892741
         }
       ],
-      "lastAccessed": 1770213146841
+      "lastAccessed": 1770243892741
     },
     "calendar management": {
       "name": "Calendar Management",
@@ -3646,9 +4672,439 @@
         {
           "text": "User encountered ambiguity when trying to reschedule an event called 'Lunch' because multiple events with that name exist in their calendar",
           "timestamp": 1770226126478
+        },
+        {
+          "text": "User is actively managing their schedule and adjusting meeting times and durations",
+          "timestamp": 1770306249048
         }
       ],
-      "lastAccessed": 1770226126478
+      "lastAccessed": 1770306249048
+    },
+    "personal productivity system": {
+      "name": "Personal productivity system",
+      "entries": [
+        {
+          "text": "User has built a comprehensive Notion-based productivity system with properties for time estimation, status tracking, project references, and what appears to be integration with Claude AI for summarization",
+          "timestamp": 1770243526418
+        }
+      ],
+      "lastAccessed": 1770243526418
+    },
+    "tech services meeting": {
+      "name": "Tech Services Meeting",
+      "entries": [
+        {
+          "text": "Meeting is scheduled for tomorrow at 3:30 PM and will last 15 minutes",
+          "timestamp": 1770243809719
+        }
+      ],
+      "lastAccessed": 1770243809719
+    },
+    "ai assistant capabilities and limitations": {
+      "name": "AI Assistant Capabilities and Limitations",
+      "entries": [
+        {
+          "text": "The assistant is running version 1.2.4 'Connection to Notion' (built February 3rd, 2026). Current capabilities include: Notion integration (query, create, update pages), file management (search, open, move/copy to drives), memory system with GitHub sync, and time awareness. Identified limitations include: lack of proactive suggestions, no calendar/schedule management visibility, no email/communication integration, no task automation chaining, limited pattern learning, and no voice integration. The interface is text-only.",
+          "timestamp": 1770249102184
+        }
+      ],
+      "lastAccessed": 1770249102184
+    },
+    "ai assistant improvement ideas": {
+      "name": "AI Assistant Improvement Ideas",
+      "entries": [
+        {
+          "text": "Potential enhancements discussed: proactive reminders and suggestions, calendar view and daily briefings, email/message/notification capabilities, automated task chaining, behavioral pattern prediction, and voice command integration.",
+          "timestamp": 1770249102194
+        }
+      ],
+      "lastAccessed": 1770249102194
+    },
+    "meeting completion tracking workflow": {
+      "name": "Meeting completion tracking workflow",
+      "entries": [
+        {
+          "text": "User wants to establish a system to mark meetings as done. Five options were presented: manual commands, time-based auto-updates, checkbox workflow using Notion's meeting_complete field, end-of-day bulk review, or calendar integration hooks. User is evaluating which approach fits their workflow best.",
+          "timestamp": 1770249224953
+        }
+      ],
+      "lastAccessed": 1770249224953
+    },
+    "notion database structure": {
+      "name": "Notion database structure",
+      "entries": [
+        {
+          "text": "User's meeting database contains at minimum: a Status field (with 'Processed' as a possible value), a meeting_complete checkbox field, meeting names, and time/scheduling information.",
+          "timestamp": 1770249224980
+        },
+        {
+          "text": "The database search failed to locate items with 'the tenfold' naming, suggesting either the items don't exist, are named differently, or the search function has limitations",
+          "timestamp": 1770300896849
+        }
+      ],
+      "lastAccessed": 1770300896849
+    },
+    "voice integration challenges": {
+      "name": "Voice integration challenges",
+      "entries": [
+        {
+          "text": "Common pain points include: Technical (speech-to-text accuracy with specialized vocabulary, latency issues, wake word detection sensitivity, background noise); UX (social awkwardness in shared spaces, structured commands vs natural conversation, difficulty editing voice input, lack of visual history); Integration (Windows speech recognition vs third-party APIs with trade-offs in cost/privacy/reliability, Electron app audio capture permissions, real-time vs batch processing)",
+          "timestamp": 1770249281288
+        }
+      ],
+      "lastAccessed": 1770249281288
+    },
+    "voice integration implementation options": {
+      "name": "Voice integration implementation options",
+      "entries": [
+        {
+          "text": "Mentioned approaches include Windows built-in speech recognition, OpenAI Whisper, and third-party APIs. Wake word detection (e.g., 'Hey Arc') is a desired feature but can have false positive triggers",
+          "timestamp": 1770249281314
+        }
+      ],
+      "lastAccessed": 1770249281314
+    },
+    "meeting workflow automation": {
+      "name": "Meeting workflow automation",
+      "entries": [
+        {
+          "text": "User has an automated workflow that parses meeting notes and extracts tasks and events when a 'meeting_complete' checkbox is checked. The automation breaks down meeting notes into actionable items automatically.",
+          "timestamp": 1770249463990
+        }
+      ],
+      "lastAccessed": 1770249463990
+    },
+    "productivity system preferences": {
+      "name": "Productivity system preferences",
+      "entries": [
+        {
+          "text": "User is being asked whether they prefer automatic reminders/nudges to mark meetings complete or would rather handle it manually. Their preference hasn't been stated yet.",
+          "timestamp": 1770249464019
+        }
+      ],
+      "lastAccessed": 1770249464019
+    },
+    "testing/qa behavior": {
+      "name": "Testing/QA behavior",
+      "entries": [
+        {
+          "text": "User was conducting tests involving sending double/multiple messages, possibly testing how the assistant handles rapid or duplicate inputs",
+          "timestamp": 1770266413525
+        }
+      ],
+      "lastAccessed": 1770266413525
+    },
+    "arc browser message handling": {
+      "name": "Arc browser message handling",
+      "entries": [
+        {
+          "text": "User and assistant were potentially testing how Arc handles messages, specifically around double-clicking or duplicate message sending",
+          "timestamp": 1770266495501
+        }
+      ],
+      "lastAccessed": 1770266495501
+    },
+    "system testing": {
+      "name": "System testing",
+      "entries": [
+        {
+          "text": "User is testing an assistant with Notion integration, file tools, and a dynamic context system",
+          "timestamp": 1770266630020
+        }
+      ],
+      "lastAccessed": 1770266630020
+    },
+    "task management": {
+      "name": "Task Management",
+      "entries": [
+        {
+          "text": "User attempts to move tasks by referencing time and relative dates (tomorrow, Friday). The system could not locate the task, suggesting either the task doesn't exist, or there's a mismatch in how the user references tasks versus how they're stored in Notion.",
+          "timestamp": 1770266679841
+        },
+        {
+          "text": "User moved a task called 'TenFold Quote' to Friday, February 6, 2026",
+          "timestamp": 1770266920709
+        },
+        {
+          "text": "User is managing tasks with labels/categories and wants to move items tagged as 'tenfold' to the following week",
+          "timestamp": 1770299826108
+        },
+        {
+          "text": "User employs a system involving 'Tenfold items' that can be relocated across different days with consideration for daily capacity limits",
+          "timestamp": 1770300860167
+        }
+      ],
+      "lastAccessed": 1770300860167
+    },
+    "tenfold pricing request": {
+      "name": "Tenfold pricing request",
+      "entries": [
+        {
+          "text": "User has a pending task to email a pricing request related to something called 'tenfold', scheduled for 8:30-9:00am",
+          "timestamp": 1770266826669
+        }
+      ],
+      "lastAccessed": 1770266826669
+    },
+    "notion database usage": {
+      "name": "Notion database usage",
+      "entries": [
+        {
+          "text": "User is trying to move/schedule an email about a tenfold pricing request to Friday using a Notion integration",
+          "timestamp": 1770266853536
+        }
+      ],
+      "lastAccessed": 1770266853536
+    },
+    "tenfold": {
+      "name": "tenfold",
+      "entries": [
+        {
+          "text": "User has a pricing request related to 'tenfold' - likely a product, service, or company they are evaluating or doing business with",
+          "timestamp": 1770266897120
+        }
+      ],
+      "lastAccessed": 1770266897120
+    },
+    "task management and scheduling": {
+      "name": "Task management and scheduling",
+      "entries": [
+        {
+          "text": "User requested postponement of a quote-related task to the following week, specifically to next Tuesday morning",
+          "timestamp": 1770299763276
+        },
+        {
+          "text": "User is working with an assistant to reschedule five 'Tenfold' items from their current position to the following week, starting Monday February 10th. The assistant checks capacity when scheduling, suggesting a capacity-aware task management system.",
+          "timestamp": 1770300839982
+        }
+      ],
+      "lastAccessed": 1770300839982
+    },
+    "tenfold organization system": {
+      "name": "Tenfold organization system",
+      "entries": [
+        {
+          "text": "User is working with some kind of organizational structure or database that has items categorized under 'tenfold'. They want to retrieve/list items with a Title property filter.",
+          "timestamp": 1770299866980
+        }
+      ],
+      "lastAccessed": 1770299866980
+    },
+    "task management workflow": {
+      "name": "Task management workflow",
+      "entries": [
+        {
+          "text": "User attempts to bulk-move items using vague references ('these all'), suggesting they expect context-aware interpretation of previously selected or viewed items",
+          "timestamp": 1770300460479
+        },
+        {
+          "text": "User attempted to bulk-reschedule items to next week, suggesting they manage time-sensitive tasks or calendar items in Notion",
+          "timestamp": 1770300822638
+        },
+        {
+          "text": "User attempts to reschedule items to the following week using conversational commands",
+          "timestamp": 1770300896832
+        }
+      ],
+      "lastAccessed": 1770300896832
+    },
+    "tenfold pricing inquiry": {
+      "name": "tenfold pricing inquiry",
+      "entries": [
+        {
+          "text": "User has a pending email regarding a pricing request for tenfold that was rescheduled to February 12, 2026",
+          "timestamp": 1770300915790
+        }
+      ],
+      "lastAccessed": 1770300915790
+    },
+    "tenfold configuration": {
+      "name": "Tenfold Configuration",
+      "entries": [
+        {
+          "text": "User has a pending task to set up a remote access solution for Tenfold Configuration, scheduled for February 12, 2026",
+          "timestamp": 1770300967092
+        }
+      ],
+      "lastAccessed": 1770300967092
+    },
+    "remote access solutions": {
+      "name": "Remote Access Solutions",
+      "entries": [
+        {
+          "text": "User is working on implementing remote access capabilities, likely in a professional/IT context",
+          "timestamp": 1770300967103
+        }
+      ],
+      "lastAccessed": 1770300967103
+    },
+    "server infrastructure": {
+      "name": "Server Infrastructure",
+      "entries": [
+        {
+          "text": "User has a pending task to coordinate with Gary regarding optimal server placement for a Tenfold database installation",
+          "timestamp": 1770300983469
+        }
+      ],
+      "lastAccessed": 1770300983469
+    },
+    "tenfold database": {
+      "name": "Tenfold Database",
+      "entries": [
+        {
+          "text": "User's organization is planning to install Tenfold database, with deployment scheduled for February 12, 2026",
+          "timestamp": 1770300983502
+        }
+      ],
+      "lastAccessed": 1770300983502
+    },
+    "tenfold application": {
+      "name": "Tenfold Application",
+      "entries": [
+        {
+          "text": "User is working on installing or implementing Tenfold Application, with the project originally scheduled before February 12, 2026, but moved to that date",
+          "timestamp": 1770301013045
+        }
+      ],
+      "lastAccessed": 1770301013045
+    },
+    "schedule management": {
+      "name": "Schedule Management",
+      "entries": [
+        {
+          "text": "User identified a scheduling conflict between Lunch and Post Work Review that needs resolution",
+          "timestamp": 1770306201680
+        },
+        {
+          "text": "Arc has been actively managing the user's schedule in Notion, resolving scheduling conflicts by rescheduling meetings and adjusting durations",
+          "timestamp": 1770309063828
+        }
+      ],
+      "lastAccessed": 1770309063828
+    },
+    "copilot": {
+      "name": "Copilot",
+      "entries": [
+        {
+          "text": "User needs to discuss 'copilot' with Arlene - likely referring to Microsoft Copilot, GitHub Copilot, or another AI assistant tool. No specific details about what aspect of copilot needs to be discussed.",
+          "timestamp": 1770310835042
+        },
+        {
+          "text": "User was planning to discuss Copilot with Arlene, suggesting they have interest or involvement with this technology (likely Microsoft Copilot or GitHub Copilot)",
+          "timestamp": 1770310959961
+        }
+      ],
+      "lastAccessed": 1770310959961
+    },
+    "task/calendar management": {
+      "name": "Task/Calendar Management",
+      "entries": [
+        {
+          "text": "User has a task titled 'Get with Arlene about copilot' scheduled for today at 2:00 PM that they want removed",
+          "timestamp": 1770310903791
+        }
+      ],
+      "lastAccessed": 1770310903791
+    },
+    "intelligence and personal philosophy": {
+      "name": "Intelligence and personal philosophy",
+      "entries": [
+        {
+          "text": "User believes intelligence is acquired through effort and experience, not merely given at birth. Has created original phrase to express this belief.",
+          "timestamp": 1770311702568
+        }
+      ],
+      "lastAccessed": 1770311702568
+    },
+    "philosophy of intelligence": {
+      "name": "Philosophy of Intelligence",
+      "entries": [
+        {
+          "text": "User believes intelligence is acquired rather than innate - suggesting a growth mindset perspective on cognitive development",
+          "timestamp": 1770311769333
+        }
+      ],
+      "lastAccessed": 1770311769333
+    },
+    "spelling correction": {
+      "name": "Spelling correction",
+      "entries": [
+        {
+          "text": "User had previously misspelled 'acquired' and wanted that error forgotten/disregarded",
+          "timestamp": 1770311835224
+        }
+      ],
+      "lastAccessed": 1770311835224
+    },
+    "personal philosophy/quotes": {
+      "name": "Personal philosophy/quotes",
+      "entries": [
+        {
+          "text": "User appears to value the phrase 'Intelligence is acquired not given' - suggesting belief in learned rather than innate intelligence",
+          "timestamp": 1770311835236
+        }
+      ],
+      "lastAccessed": 1770311835236
+    },
+    "programming humor": {
+      "name": "Programming humor",
+      "entries": [
+        {
+          "text": "Discussed a joke about programmers preferring dark mode because light attracts bugs - a play on both software bugs and literal insects",
+          "timestamp": 1770311871633
+        }
+      ],
+      "lastAccessed": 1770311871633
+    },
+    "littlebot project": {
+      "name": "LittleBot project",
+      "entries": [
+        {
+          "text": "A project involving memory systems, JSON file storage, and Claude API integration",
+          "timestamp": 1770311903932
+        }
+      ],
+      "lastAccessed": 1770311903932
+    },
+    "tenfold research": {
+      "name": "Tenfold Research",
+      "entries": [
+        {
+          "text": "User has scheduled time (9:15 AM) for researching something called 'Tenfold' - no details provided about what this is",
+          "timestamp": 1770311955942
+        }
+      ],
+      "lastAccessed": 1770311955942
+    },
+    "board members' cellular ipad usage": {
+      "name": "Board Members' Cellular iPad Usage",
+      "entries": [
+        {
+          "text": "User has a recurring task to review board members' iPad usage - suggests oversight or management role",
+          "timestamp": 1770311955952
+        }
+      ],
+      "lastAccessed": 1770311955952
+    },
+    "work responsibilities": {
+      "name": "Work responsibilities",
+      "entries": [
+        {
+          "text": "User has various technical leadership duties including SharePoint migration planning, Copilot training/support for colleagues, reviewing board members' device usage, and team meetings",
+          "timestamp": 1770312015396
+        }
+      ],
+      "lastAccessed": 1770312015396
+    },
+    "assistant reliability and accuracy": {
+      "name": "Assistant reliability and accuracy",
+      "entries": [
+        {
+          "text": "The assistant previously fabricated information about the user's schedule, which the user corrected. The assistant should only query the Notion calendar when explicitly asked and should never invent details.",
+          "timestamp": 1770312067145
+        }
+      ],
+      "lastAccessed": 1770312067145
     }
   },
   "conversations": [
@@ -4019,7 +5475,215 @@
     {
       "summary": "User requested to reschedule their lunch event to 1pm for the current day. The assistant successfully moved the event and resolved a scheduling conflict.",
       "timestamp": 1770226232586
+    },
+    {
+      "summary": "User confirmed Assistant can access their Notion 'Inbox' database, which contains a detailed productivity management system with 15+ properties for tracking tasks, meetings, and events, including AI-generated summaries and workflow automation checkboxes.",
+      "timestamp": 1770243526443
+    },
+    {
+      "summary": "User provided updated scheduling details for an upcoming Tech Services meeting, correcting the time to 3:30 PM and noting its 15-minute duration",
+      "timestamp": 1770243809751
+    },
+    {
+      "summary": "User corrected the assistant after a meeting time change wasn't initially applied. The Tech Services meeting was successfully rescheduled to 3:30 PM - 3:45 PM for the following day.",
+      "timestamp": 1770243849120
+    },
+    {
+      "summary": "User provided brief positive feedback. Assistant noticed a discrepancy between the user's stated meeting time/duration and what was showing in the system, and offered to correct it.",
+      "timestamp": 1770243870298
+    },
+    {
+      "summary": "User confirmed that a Tech Services meeting had already been rescheduled to a 15-minute slot at 3:30 PM the next day, and requested the assistant trust their confirmation without verification.",
+      "timestamp": 1770243892773
+    },
+    {
+      "summary": "User asked how to improve the assistant's functionality. Assistant provided its current version info, existing capabilities, and identified 6 key areas for enhancement to become more assistant-like, then asked user to prioritize needs.",
+      "timestamp": 1770249102223
+    },
+    {
+      "summary": "User is working with an assistant that provides meeting reminders from Notion and wants to establish a feedback mechanism to mark meetings as complete. They're exploring different workflow options ranging from manual updates to automated status changes.",
+      "timestamp": 1770249225007
+    },
+    {
+      "summary": "User expressed interest in voice integration but reported unsuccessful attempts. Assistant provided comprehensive breakdown of common voice integration challenges across technical, UX, and integration domains, then inquired about the user's specific approach to offer targeted help.",
+      "timestamp": 1770249281337
+    },
+    {
+      "summary": "User revealed they have an existing automation system for processing meeting notes - when they check a 'meeting_complete' box, it triggers a workflow that extracts tasks and events from their notes. The assistant is clarifying their role and asking whether automated reminders to mark meetings complete would be helpful or annoying.",
+      "timestamp": 1770249464041
+    },
+    {
+      "summary": "Casual greeting exchange. User said hello, assistant responded with friendly banter referencing the late hour and the user's work on 'LittleBot'. No substantive topics discussed or knowledge shared.",
+      "timestamp": 1770266373006
+    },
+    {
+      "summary": "User informed assistant they were running tests with double messages in Arc, likely testing message handling behavior rather than having a substantive conversation",
+      "timestamp": 1770266413549
+    },
+    {
+      "summary": "User sent a brief check-in message, possibly accidentally duplicated. Assistant responded with context about the time, user's messaging habits, and confirmed no active tasks were running. Conversation appears to be a casual status check rather than a substantive interaction.",
+      "timestamp": 1770266495527
+    },
+    {
+      "summary": "User confirmed they are still in testing mode. Assistant acknowledged the late-night testing session and indicated all systems (Notion integration, file tools, dynamic context) are operational and ready for test scenarios.",
+      "timestamp": 1770266630045
+    },
+    {
+      "summary": "User attempted to reschedule an 8:30am task from tomorrow to Friday, but the assistant couldn't locate the task in their Notion database, indicating either the task doesn't exist or there's a query/naming mismatch.",
+      "timestamp": 1770266679867
+    },
+    {
+      "summary": "User queried about their 8:30am schedule for tomorrow. No event was found in their Notion database - either nothing is scheduled or the item is marked as 'Processed'.",
+      "timestamp": 1770266706761
+    },
+    {
+      "summary": "User attempted to reschedule a calendar item in their Notion database (an 8:30-9:00am email task about a tenfold pricing request) to Friday, but the assistant could not locate the item in the database.",
+      "timestamp": 1770266826696
+    },
+    {
+      "summary": "User attempted to reschedule an email regarding a tenfold pricing request to Friday through a Notion database integration, but the system could not locate the specified item.",
+      "timestamp": 1770266853564
+    },
+    {
+      "summary": "User requested to move an email about a tenfold pricing request to Friday (February 6, 2026), indicating they manage emails/tasks using a calendar or task management system",
+      "timestamp": 1770266897145
+    },
+    {
+      "summary": "User requested to reschedule 'TenFold Quote' to Friday, which was successfully moved to February 6, 2026",
+      "timestamp": 1770266920742
+    },
+    {
+      "summary": "Morning greeting exchange where assistant offers to help with daily tasks. User greeted assistant but didn't specify any particular task or topic to pursue yet. Assistant demonstrated awareness of user's ongoing projects and organizational systems.",
+      "timestamp": 1770299116602
+    },
+    {
+      "summary": "User requested to postpone a business task called 'TenFold Quote' to next week. Assistant rescheduled it to Tuesday, February 11th at 9:10 AM, acknowledging the user has other pressing demands on their time.",
+      "timestamp": 1770299763291
+    },
+    {
+      "summary": "User requested to move all items labeled as 'tenfold' to next week. Assistant indicated they would check the schema for the correct property name to perform this action.",
+      "timestamp": 1770299826125
+    },
+    {
+      "summary": "User requested a list of items under 'tenfold' category. Assistant indicated they would search using a Title property, suggesting this is part of a database or note-taking system query.",
+      "timestamp": 1770299866986
+    },
+    {
+      "summary": "User attempted to reschedule multiple items to next week using ambiguous reference language, but the assistant couldn't resolve what 'these all' referred to in their Notion database. This reveals the user's expectation for contextual awareness in their task management system.",
+      "timestamp": 1770300460494
+    },
+    {
+      "summary": "User attempted to move multiple items to next week in their Notion database but the assistant couldn't resolve the contextual reference 'all these items', indicating a limitation in understanding implicit context or visual references",
+      "timestamp": 1770300822657
+    },
+    {
+      "summary": "User confirmed proceeding with rescheduling five Tenfold-related tasks to the following week. The assistant is using a capacity-aware system to intelligently distribute these tasks starting February 10th.",
+      "timestamp": 1770300839993
+    },
+    {
+      "summary": "User confirmed agreement to reschedule five 'Tenfold items' from today to next week, with the assistant proceeding to redistribute them intelligently while checking daily capacity constraints.",
+      "timestamp": 1770300860178
+    },
+    {
+      "summary": "User attempted to move items related to 'tenfold' to next week in their Notion database, but the assistant could not locate these items, indicating either a naming mismatch or the items don't exist in the database.",
+      "timestamp": 1770300896866
+    },
+    {
+      "summary": "User postponed handling an email about a tenfold pricing request to the following week (February 12, 2026)",
+      "timestamp": 1770300915802
+    },
+    {
+      "summary": "User rescheduled a task related to setting up remote access for Tenfold Configuration to the following week (February 12, 2026), suggesting they are involved in IT infrastructure or system administration work.",
+      "timestamp": 1770300967160
+    },
+    {
+      "summary": "User postponed a server infrastructure planning task involving Gary and Tenfold database installation to February 12, 2026",
+      "timestamp": 1770300983516
+    },
+    {
+      "summary": "User requested to reschedule a task named 'Tenfold Requirements' to the following week (February 12, 2026)",
+      "timestamp": 1770300998930
+    },
+    {
+      "summary": "User rescheduled their Tenfold Application Installation Project to February 12, 2026 (next week from the original date)",
+      "timestamp": 1770301013059
+    },
+    {
+      "summary": "Brief exchange where user provided feedback about assistant's behavior being chaotic, and assistant acknowledged and committed to being more focused",
+      "timestamp": 1770306121594
+    },
+    {
+      "summary": "User pointed out a scheduling conflict between two activities (Lunch and Post Work Review). Assistant acknowledged previous scattered communication approach and offered to resolve the conflict with a more direct approach, asking user's preference on which item to reschedule.",
+      "timestamp": 1770306201691
+    },
+    {
+      "summary": "User requested to reschedule 'Post Work Review' to 12:15 and shorten it to 15 minutes. Task was completed successfully.",
+      "timestamp": 1770306249061
+    },
+    {
+      "summary": "User acknowledged Arc's recent organizational work managing their Notion database. Arc confirmed rescheduling a Post Work Review to 12:15 PM (15 minutes) to resolve a conflict with lunch, and noted the user's busy day with six commitments and four ongoing projects.",
+      "timestamp": 1770309063838
+    },
+    {
+      "summary": "User requested to add a task. Assistant confirmed capability to add tasks to user's Notion database and requested necessary details (task name, schedule, duration, status) before proceeding.",
+      "timestamp": 1770310762175
+    },
+    {
+      "summary": "User requested to schedule a meeting with Arlene about copilot. Assistant scheduled it for 2:00 PM today (30 minutes) and noted the user's busy schedule, offering to reschedule if needed.",
+      "timestamp": 1770310835056
+    },
+    {
+      "summary": "User requested to remove a scheduled task about discussing copilot with Arlene, which was set for today at 2:00 PM. The assistant confirmed finding the task and offered options to either delete it entirely or cancel it from the schedule.",
+      "timestamp": 1770310903806
+    },
+    {
+      "summary": "User requested deletion of a scheduled meeting/event with Arlene regarding Copilot. The task was completed successfully.",
+      "timestamp": 1770310959975
+    },
+    {
+      "summary": "User gave ambiguous feedback ('Nope not changed') after assistant confirmed deletion of a Notion task item. Assistant seeks clarification on whether the deletion failed, user changed their mind, or something else is the issue.",
+      "timestamp": 1770311018227
+    },
+    {
+      "summary": "User asked about the current date/time. Assistant provided the date (Thursday, February 5, 2026, 12:12 PM Eastern) and addressed the user as 'Sir', suggesting either a previous preference or contextual formality.",
+      "timestamp": 1770311573318
+    },
+    {
+      "summary": "User shared an original phrase they coined about intelligence being acquired rather than given, reflecting their philosophical stance on the nature of intelligence. Assistant acknowledged this while noting a spelling variation in 'acquired'.",
+      "timestamp": 1770311702583
+    },
+    {
+      "summary": "User corrected a typo in their philosophical statement about intelligence being acquired rather than given. The assistant acknowledged the correction with a formal, somewhat playful tone addressing the user as 'Sir'.",
+      "timestamp": 1770311769356
+    },
+    {
+      "summary": "User requested that a previous spelling error of 'acquired' be disregarded in relation to their phrase about intelligence being acquired rather than given. Shows attention to detail and philosophical interest in nature vs nurture regarding intelligence.",
+      "timestamp": 1770311835250
+    },
+    {
+      "summary": "User requested a joke. Assistant made a programming joke and referenced the user's work on 'LittleBot', suggesting the user has development experience with bugs/debugging.",
+      "timestamp": 1770311871648
+    },
+    {
+      "summary": "User gave feedback requesting a more relaxed communication style. Assistant acknowledged this and made a programming joke while referencing the user's LittleBot project, which involves memory systems, JSON files, and Claude API calls.",
+      "timestamp": 1770311903946
+    },
+    {
+      "summary": "User indicated they were finished with the current interaction. No substantial content was discussed.",
+      "timestamp": 1770311927811
+    },
+    {
+      "summary": "User asked what the assistant was doing. Assistant proactively checked user's Notion calendar and provided upcoming schedule for the day, showing user has a managerial/oversight role with structured time management practices.",
+      "timestamp": 1770311955966
+    },
+    {
+      "summary": "User corrected the assistant for fabricating a 'morning break' that didn't exist in their schedule. The assistant acknowledged the error and provided the accurate schedule for Thursday, February 5, 2026, showing multiple technical meetings and projects throughout the afternoon.",
+      "timestamp": 1770312015410
+    },
+    {
+      "summary": "User reprimanded assistant for fabricating information (likely about calendar/schedule). Assistant acknowledged the error, apologized, and committed to only providing accurate information and using tools appropriately when requested.",
+      "timestamp": 1770312067161
     }
   ],
-  "lastUpdated": 1770226232586
+  "lastUpdated": 1770312067161
 }

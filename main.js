@@ -1802,7 +1802,7 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
         },
         {
           name: "notion_create_page",
-          description: "Create a new page in the Notion database with specified properties. Use notion_get_schema first to see available fields and valid status values. Common statuses: Unprocessed, Needs Review, Upcoming, Processed. IMPORTANT: Set 'Estimated Mintues' (note typo) for duration - Lunch=45 min, Break=15 min, default=30 min. ALWAYS include both start AND end times in Event Date. Use Type 'Break' for lunch/breaks, 'Meeting' for meetings, 'Task' for work items.",
+          description: "Create a new page in the Notion database with specified properties. Use notion_get_schema first to see available fields and valid status values. Common statuses: Unprocessed, Needs Review, Upcoming, Processed, Resolved. IMPORTANT: Set 'Estimated Mintues' (note typo) for duration - Lunch=45 min, Break=15 min, default=30 min. ALWAYS include both start AND end times in Event Date. Use Type 'Break' for lunch/breaks, 'Meeting' for meetings, 'Task' for work items.",
           input_schema: {
             type: "object",
             properties: {
@@ -1830,6 +1830,20 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
               }
             },
             required: ["page_id", "properties"]
+          }
+        },
+        {
+          name: "notion_archive_page",
+          description: "Archive (delete) a page from the Notion database. Use when user asks to delete, remove, or clean up tasks/items. REQUIRED - don't just say you'll do it, call this tool.",
+          input_schema: {
+            type: "object",
+            properties: {
+              page_id: {
+                type: "string",
+                description: "The Notion page ID to archive (from query results)"
+              }
+            },
+            required: ["page_id"]
           }
         }
       ];
@@ -1938,6 +1952,15 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
               console.log('   ✅ Page updated successfully');
             } catch (err) {
               console.error('   ❌ Notion update error:', err.message);
+              result = { error: err.message };
+            }
+          } else if (toolUse.name === 'notion_archive_page') {
+            console.log('   🗑️  Archiving Notion page:', toolUse.input.page_id);
+            try {
+              result = await notionManager.archivePage(toolUse.input.page_id);
+              console.log('   ✅ Page archived successfully');
+            } catch (err) {
+              console.error('   ❌ Notion archive error:', err.message);
               result = { error: err.message };
             }
           }
@@ -2069,6 +2092,15 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
                 console.log('   ✅ Page updated successfully');
               } catch (err) {
                 console.error('   ❌ Notion update error:', err.message);
+                result = { error: err.message };
+              }
+            } else if (toolUse.name === 'notion_archive_page') {
+              console.log('   🗑️  Archiving Notion page:', toolUse.input.page_id);
+              try {
+                result = await notionManager.archivePage(toolUse.input.page_id);
+                console.log('   ✅ Page archived successfully');
+              } catch (err) {
+                console.error('   ❌ Notion archive error:', err.message);
                 result = { error: err.message };
               }
             }

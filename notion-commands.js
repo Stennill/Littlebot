@@ -49,6 +49,12 @@ async function parseNotionCommand(input) {
             status: {
               does_not_equal: 'Processed'
             }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Resolved'
+            }
           }
         ]
       };
@@ -94,11 +100,27 @@ async function parseNotionCommand(input) {
   
   // Pattern: "move [item name] (from [old date]) to [new date]"
   // More flexible - extracts item name intelligently
+  // BUT: Skip context-dependent phrases that should go to AI
   const movePattern = /move\s+(.+?)\s+(?:from\s+(?:yesterday|today|tomorrow|last\s+\w+|next\s+\w+|\w+day)\s+)?to\s+(tomorrow|today|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
   const match = input.match(movePattern);
   
   if (match) {
     let itemName = match[1].trim();
+    
+    // Skip if this is a context-dependent reference that should go to AI
+    const contextPhrases = [
+      /^(all|these|them|those|the)(\s+items?)?$/i,
+      /^all\s+(these|those|the|of\s+these|of\s+those)/i,
+      /^(these|those)\s+items?$/i,
+      /^(them|it)$/i
+    ];
+    
+    const isContextDependent = contextPhrases.some(pattern => pattern.test(itemName));
+    if (isContextDependent) {
+      console.log('   ⏭️  Context-dependent phrase detected, skipping to AI:', itemName);
+      return null; // Let AI handle it
+    }
+    
     const dateWord = match[2];
     
     // Clean up item name - remove date qualifiers
@@ -138,6 +160,12 @@ async function parseNotionCommand(input) {
             property: 'Status',
             status: {
               does_not_equal: 'Processed'
+            }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Resolved'
             }
           }
         ]

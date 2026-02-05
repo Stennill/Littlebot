@@ -40,6 +40,12 @@ class NotionService {
             status: {
               does_not_equal: 'Processed'
             }
+          },
+          {
+            property: 'Status',
+            status: {
+              does_not_equal: 'Resolved'
+            }
           }
         ]
       };
@@ -378,13 +384,12 @@ class NotionService {
       // Post to Slack if configured - batch all moves into one message
       if (slackService.isConfigured()) {
         const dateTimeStr = targetStart.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-        let slackMessage = `*Moved* ${itemTitle} to ${dateTimeStr}`;
+        let slackMessage = `Sir, I've moved "${itemTitle}" to ${dateTimeStr}`;
         
         if (movedConflicts.length > 0) {
-          slackMessage += `\n\n*Resolved ${movedConflicts.length} conflict${movedConflicts.length !== 1 ? 's' : ''}:*`;
-          movedConflicts.forEach(c => {
-            slackMessage += `\n• ${c.title} → ${c.dateTimeStr}`;
-          });
+          slackMessage += movedConflicts.length === 1
+            ? `\n\nI also resolved a scheduling conflict:\n• ${movedConflicts[0].title} → ${movedConflicts[0].dateTimeStr}`
+            : `\n\nI also resolved ${movedConflicts.length} scheduling conflicts:\n${movedConflicts.map(c => `• ${c.title} → ${c.dateTimeStr}`).join('\n')}`;
         }
         
         await slackService.postMessage(slackMessage);

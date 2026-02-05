@@ -87,20 +87,113 @@
         </defs>
 
         <style>
-          .spinSlow { transform-origin: 256px 256px; animation: spin 28s linear infinite; }
-          .spinFast { transform-origin: 256px 256px; animation: spin 20s linear reverse infinite; }
-          .spinMid  { transform-origin: 256px 256px; animation: spin 24s linear infinite; opacity:.82; }
+          /* Organic spinning with dramatic speed variations */
+          .spinSlow { 
+            transform-origin: 256px 256px; 
+            animation: spinOrganic1 20s cubic-bezier(0.65, 0.05, 0.35, 0.95) infinite; 
+          }
+          .spinFast { 
+            transform-origin: 256px 256px; 
+            animation: spinOrganic2 14s cubic-bezier(0.68, -0.15, 0.32, 1.15) reverse infinite; 
+          }
+          .spinMid  { 
+            transform-origin: 256px 256px; 
+            animation: spinOrganic3 17s cubic-bezier(0.5, -0.1, 0.5, 1.1) infinite; 
+            opacity: .82; 
+          }
 
-          .pulse    { transform-origin: 256px 256px; animation: pulse 6.5s ease-in-out infinite; }
-          .pulse2   { transform-origin: 256px 256px; animation: pulse2 10s ease-in-out infinite; }
+          /* Dramatic breathing pulse */
+          .pulse { 
+            transform-origin: 256px 256px; 
+            animation: breathe 4.5s ease-in-out infinite, shimmer 2.8s ease-in-out infinite; 
+          }
+          .pulse2 { 
+            transform-origin: 256px 256px; 
+            animation: breathe2 6.5s ease-in-out infinite, float 5s ease-in-out infinite; 
+          }
 
-          .tw       { animation: tw 8s ease-in-out infinite; }
-          .tw2      { animation: tw 12s ease-in-out infinite; }
+          /* Exaggerated twinkle */
+          .tw  { animation: twinkle1 5.5s ease-in-out infinite; }
+          .tw2 { animation: twinkle2 7s ease-in-out infinite; }
 
-          @keyframes spin { to { transform: rotate(360deg); } }
-          @keyframes pulse { 0%,100%{ transform:scale(1); opacity:.78 } 50%{ transform:scale(1.06); opacity:.92 } }
-          @keyframes pulse2{ 0%,100%{ transform:scale(1); opacity:.20 } 50%{ transform:scale(1.10); opacity:.38 } }
-          @keyframes tw { 0%,100%{ opacity:.18 } 50%{ opacity:.60 } }
+          /* Dramatic organic rotation with big acceleration/deceleration */
+          @keyframes spinOrganic1 { 
+            0% { transform: rotate(0deg); }
+            20% { transform: rotate(95deg); }
+            45% { transform: rotate(170deg); }
+            50% { transform: rotate(185deg); }
+            75% { transform: rotate(265deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          @keyframes spinOrganic2 { 
+            0% { transform: rotate(0deg); }
+            15% { transform: rotate(45deg); }
+            35% { transform: rotate(125deg); }
+            65% { transform: rotate(230deg); }
+            85% { transform: rotate(315deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          @keyframes spinOrganic3 { 
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(75deg); }
+            40% { transform: rotate(155deg); }
+            60% { transform: rotate(205deg); }
+            85% { transform: rotate(305deg); }
+            100% { transform: rotate(360deg); }
+          }
+
+          /* Dramatic breathing - really expands and contracts */
+          @keyframes breathe { 
+            0%, 100% { transform: scale(0.92); opacity: .65; }
+            15% { transform: scale(0.98); opacity: .78; }
+            35% { transform: scale(1.08); opacity: .90; }
+            50% { transform: scale(1.16); opacity: 1; }
+            65% { transform: scale(1.08); opacity: .90; }
+            85% { transform: scale(0.98); opacity: .78; }
+          }
+          
+          @keyframes breathe2 { 
+            0%, 100% { transform: scale(0.88); opacity: .12; }
+            25% { transform: scale(1.02); opacity: .28; }
+            50% { transform: scale(1.18); opacity: .50; }
+            75% { transform: scale(1.08); opacity: .38; }
+          }
+
+          /* Strong shimmer effect */
+          @keyframes shimmer {
+            0%, 100% { filter: brightness(0.9); }
+            25% { filter: brightness(1.1); }
+            50% { filter: brightness(1.35); }
+            75% { filter: brightness(1.1); }
+          }
+
+          /* Pronounced floating motion */
+          @keyframes float {
+            0%, 100% { transform: scale(0.95) translateY(0); }
+            20% { transform: scale(1.02) translateY(-3px); }
+            50% { transform: scale(1.12) translateY(2px); }
+            80% { transform: scale(1.06) translateY(-2px); }
+          }
+
+          /* Dramatic twinkling with big opacity swings */
+          @keyframes twinkle1 { 
+            0%, 100% { opacity: .08; }
+            15% { opacity: .55; }
+            30% { opacity: .18; }
+            50% { opacity: .82; }
+            65% { opacity: .28; }
+            80% { opacity: .68; }
+          }
+          
+          @keyframes twinkle2 { 
+            0%, 100% { opacity: .12; }
+            20% { opacity: .70; }
+            40% { opacity: .22; }
+            60% { opacity: .88; }
+            80% { opacity: .35; }
+          }
 
           @media (prefers-reduced-motion: reduce){
             .spinSlow,.spinFast,.spinMid,.pulse,.pulse2,.tw,.tw2{ animation:none !important; }

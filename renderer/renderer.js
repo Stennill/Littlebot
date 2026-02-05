@@ -39,7 +39,151 @@ let isSpeaking = false;
 let currentUtterance = null;
 let hideTimer = null;
 
-// Particles no longer needed with SVG orb
+// Randomize particle animations for organic movement
+function randomizeParticles() {
+  const particles = document.querySelectorAll('[class^="particle"]');
+  const centerX = 256;
+  const centerY = 256;
+  
+  particles.forEach((particle, index) => {
+    const duration = (Math.random() * 3 + 3).toFixed(2); // 3-6 seconds
+    const delay = -(Math.random() * 5).toFixed(2); // 0-5 second negative delay
+    
+    // Get particle's current position
+    const cx = parseFloat(particle.getAttribute('cx'));
+    const cy = parseFloat(particle.getAttribute('cy'));
+    
+    // Calculate current distance from center
+    const currentDist = Math.sqrt((cx - centerX) ** 2 + (cy - centerY) ** 2);
+    
+    // Calculate angle from center
+    const angle = Math.atan2(cy - centerY, cx - centerX);
+    
+    // Radial movement (toward/away from center) - strictly constrained to 90px
+    const maxAllowedDist = 90;
+    
+    // Calculate safe movement distances that won't exceed boundary
+    let radialDist1 = Math.random() * 8 + 3; // 3-11px
+    let radialDist2 = Math.random() * 8 + 3;
+    const radialDir1 = Math.random() > 0.5 ? 1 : -1;
+    const radialDir2 = Math.random() > 0.5 ? 1 : -1;
+    
+    // If moving away from center, check if it would exceed boundary
+    if (radialDir1 > 0) {
+      radialDist1 = Math.min(radialDist1, maxAllowedDist - currentDist - 5); // Keep 5px buffer
+    }
+    if (radialDir2 > 0) {
+      radialDist2 = Math.min(radialDist2, maxAllowedDist - currentDist - 5);
+    }
+    
+    // Ensure positive values
+    radialDist1 = Math.max(0, radialDist1);
+    radialDist2 = Math.max(0, radialDist2);
+    
+    // Calculate radial movement
+    const tx1 = (Math.cos(angle) * radialDist1 * radialDir1).toFixed(1);
+    const ty1 = (Math.sin(angle) * radialDist1 * radialDir1).toFixed(1);
+    const tx2 = (Math.cos(angle) * radialDist2 * radialDir2).toFixed(1);
+    const ty2 = (Math.sin(angle) * radialDist2 * radialDir2).toFixed(1);
+    
+    // Add orbital/tangential movement (perpendicular to radial) - reduced
+    const orbitalAmount1 = (Math.random() * 10 - 5).toFixed(1); // -5 to 5px
+    const orbitalAmount2 = (Math.random() * 10 - 5).toFixed(1);
+    const ox1 = (-Math.sin(angle) * orbitalAmount1).toFixed(1);
+    const oy1 = (Math.cos(angle) * orbitalAmount1).toFixed(1);
+    const ox2 = (-Math.sin(angle) * orbitalAmount2).toFixed(1);
+    const oy2 = (Math.cos(angle) * orbitalAmount2).toFixed(1);
+    
+    // Combine radial and orbital
+    const finalTx1 = (parseFloat(tx1) + parseFloat(ox1)).toFixed(1);
+    const finalTy1 = (parseFloat(ty1) + parseFloat(oy1)).toFixed(1);
+    const finalTx2 = (parseFloat(tx2) + parseFloat(ox2)).toFixed(1);
+    const finalTy2 = (parseFloat(ty2) + parseFloat(oy2)).toFixed(1);
+    
+    // Hard clamp: ensure final position doesn't exceed 90px from center
+    const maxRadius = 90;
+    
+    // Check position 1
+    const newX1 = cx + parseFloat(finalTx1);
+    const newY1 = cy + parseFloat(finalTy1);
+    const newDist1 = Math.sqrt((newX1 - centerX) ** 2 + (newY1 - centerY) ** 2);
+    
+    let clampedTx1 = finalTx1;
+    let clampedTy1 = finalTy1;
+    
+    if (newDist1 > maxRadius) {
+      const scale = maxRadius / newDist1;
+      clampedTx1 = ((newX1 - cx) * scale).toFixed(1);
+      clampedTy1 = ((newY1 - cy) * scale).toFixed(1);
+    }
+    
+    // Check position 2
+    const newX2 = cx + parseFloat(finalTx2);
+    const newY2 = cy + parseFloat(finalTy2);
+    const newDist2 = Math.sqrt((newX2 - centerX) ** 2 + (newY2 - centerY) ** 2);
+    
+    let clampedTx2 = finalTx2;
+    let clampedTy2 = finalTy2;
+    
+    if (newDist2 > maxRadius) {
+      const scale = maxRadius / newDist2;
+      clampedTx2 = ((newX2 - cx) * scale).toFixed(1);
+      clampedTy2 = ((newY2 - cy) * scale).toFixed(1);
+    }
+    
+    // Rotation (spin)
+    const rotation1 = (Math.random() * 120 - 60).toFixed(0); // -60 to 60 degrees
+    const rotation2 = (Math.random() * 120 - 60).toFixed(0);
+    const rotationDir = Math.random() > 0.5 ? 1 : -1; // clockwise or counter
+    
+    const scale1 = (Math.random() * 0.5 + 0.8).toFixed(2); // 0.8-1.3
+    const scale2 = (Math.random() * 0.5 + 0.8).toFixed(2);
+    const opacity1 = (Math.random() * 0.3 + 0.5).toFixed(2); // 0.5-0.8
+    const opacity2 = (Math.random() * 0.3 + 0.7).toFixed(2); // 0.7-1.0
+    const timing = Math.random() > 0.5 ? 'ease-in-out' : 'ease-out';
+    
+    const keyframeName = `floatRandom${index}`;
+    
+    // Create unique keyframe with radial movement and rotation
+    const keyframes = `
+      @keyframes ${keyframeName} {
+        0%, 100% { 
+          transform: translate(0, 0) scale(1) rotate(0deg); 
+          opacity: ${opacity1}; 
+        }
+        ${(Math.random() * 20 + 30).toFixed(0)}% { 
+          transform: translate(${clampedTx1}px, ${clampedTy1}px) scale(${scale1}) rotate(${rotation1 * rotationDir}deg); 
+          opacity: ${opacity2}; 
+        }
+        ${(Math.random() * 20 + 60).toFixed(0)}% { 
+          transform: translate(${clampedTx2}px, ${clampedTy2}px) scale(${scale2}) rotate(${rotation2 * rotationDir}deg); 
+          opacity: ${(parseFloat(opacity2) * 0.9).toFixed(2)}; 
+        }
+      }
+    `;
+    
+    // Add keyframe to document
+    const existingStyle = document.getElementById(`particle-keyframes-${index}`);
+    if (existingStyle) {
+      existingStyle.innerHTML = keyframes;
+    } else {
+      const style = document.createElement('style');
+      style.id = `particle-keyframes-${index}`;
+      style.innerHTML = keyframes;
+      document.head.appendChild(style);
+    }
+    
+    // Apply animation to particle
+    particle.style.animation = `${keyframeName} ${duration}s ${timing} ${delay}s infinite`;
+  });
+}
+
+// Initialize particle randomization on load
+document.addEventListener('DOMContentLoaded', () => {
+  randomizeParticles();
+  // Re-randomize every 30 seconds for continuous organic feel
+  setInterval(randomizeParticles, 30000);
+});
 
 // Auto-hide panel after 60 seconds
 function startHideTimer() {
