@@ -1,8 +1,25 @@
 {
-  "version": "1.2.4",
-  "codename": "Connection to Notion",
-  "buildDate": "2026-02-03",
+  "version": "1.3.0",
+  "codename": "Arc Modular",
+  "buildDate": "2026-02-05",
   "changelog": [
+    {
+      "version": "1.3.0",
+      "date": "2026-02-05",
+      "name": "Arc Modular",
+      "changes": [
+        "🏗️ Completely redesigned Arc's architecture - separated personality from capabilities",
+        "Created arc-persona.txt - Arc's pure personality file (never changes)",
+        "Created arc-tasks.js - Modular task registry system for all capabilities",
+        "Refactored main.js to use task registry - eliminated 170+ lines of hardcoded tool definitions",
+        "Arc's identity is now protected - adding/removing features doesn't affect personality",
+        "Tasks are now modular plugins - easy to add, remove, or modify independently",
+        "Improved maintainability - each concern has its own dedicated file",
+        "Cleaned up project structure - moved unused files to archive, organized docs",
+        "Added comprehensive architecture documentation in docs/ARC-ARCHITECTURE.md",
+        "Future-proofed for task plugins, permissions system, and analytics"
+      ]
+    },
     {
       "version": "1.2.4",
       "date": "2026-02-03",
