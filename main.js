@@ -13,6 +13,7 @@ const schedulerService = require('./scheduler-service');
 const eventNotifier = require('./event-notifier');
 const scheduleOptimizer = require('./schedule-optimizer');
 const slackService = require('./slack-service');
+const arcTasks = require('./arc-tasks'); // NEW: Task registry system
 
 let speechProcess = null;
 let wakeWordProcess = null;
@@ -43,17 +44,25 @@ async function loadVersionInfo() {
   }
 }
 
-// Load system prompt from file
+// Load system prompt from file (Arc's persona)
 async function loadSystemPrompt() {
   try {
-    const promptPath = path.join(__dirname, 'system-prompt.txt');
-    systemPrompt = await fs.readFile(promptPath, 'utf8');
-    console.log('System prompt loaded successfully');
+    // Try loading new arc-persona.txt first, fallback to old system-prompt.txt
+    let promptPath = path.join(__dirname, 'arc-persona.txt');
+    try {
+      systemPrompt = await fs.readFile(promptPath, 'utf8');
+      console.log('Arc persona loaded successfully');
+    } catch {
+      // Fallback to old system-prompt.txt for backwards compatibility
+      promptPath = path.join(__dirname, 'system-prompt.txt');
+      systemPrompt = await fs.readFile(promptPath, 'utf8');
+      console.log('System prompt loaded successfully (using legacy file)');
+    }
     return systemPrompt;
   } catch (err) {
     console.error('Failed to load system prompt:', err);
     // Fallback to basic prompt
-    systemPrompt = 'You are LittleBot, a helpful desktop assistant.';
+    systemPrompt = 'You are Arc, a helpful desktop assistant.';
     return systemPrompt;
   }
 }
@@ -279,6 +288,32 @@ app.whenReady().then(async () => {
   // Initialize context builder
   contextBuilder = new ContextBuilder(memoryStore);
   console.log('Context builder initialized');
+  
+  // Initialize Arc Task Registry with all services and handlers
+  arcTasks.initialize(
+    {
+      notionService: notionService,
+      memoryStore: memoryStore,
+      versionInfo: versionInfo
+    },
+    {
+      // File management handlers
+      searchForFile: searchForFile,
+      getFileInfo: getFileInfo,
+      openFile: openFile,
+      getRecentFiles: getRecentFiles,
+      getRemovableDrives: getRemovableDrives,
+      moveFileToRemovable: moveFileToRemovable,
+      copyFileToRemovable: copyFileToRemovable,
+      // Notion handlers
+      notionQueryDatabase: (filters) => notionManager.queryDatabase(filters),
+      notionGetSchema: () => notionManager.getDatabaseSchema(),
+      notionCreatePage: (props) => notionManager.createPage(props),
+      notionUpdatePage: (id, props) => notionManager.updatePage(id, props),
+      notionArchivePage: (id) => notionManager.archivePage(id)
+    }
+  );
+  console.log('Arc task registry initialized');
   
   // Configure Slack if webhook is available
   if (storedConfig.slackWebhook) {
@@ -1678,175 +1713,8 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
       
       // Using configured model (default: Haiku 3)
       
-      // Define available tools for Claude
-      const tools = [
-        {
-          name: "search_file",
-          description: "Search for files on the user's computer. Supports partial matching - searching for 'resume' will find 'My Resume.docx', 'Stephen Resume.doc', etc. Automatically searches for file variants (e.g., if searching for .doc, also finds .docx and .docm). Searches common locations like Desktop, Documents, Downloads. Returns up to 15 files with their names and full paths.",
-          input_schema: {
-            type: "object",
-            properties: {
-              filename: {
-                type: "string",
-                description: "The filename or keyword to search for. Can be: exact name with extension ('config.json'), base name ('resume' finds all files containing 'resume'), or name with extension for variants ('report.doc' finds .doc/.docx/.docm)"
-              }
-            },
-            required: ["filename"]
-          }
-        },
-        {
-          name: "get_file_info",
-          description: "Get detailed information about a specific file, including size, location, dates, and content (for small text files). Requires the full file path.",
-          input_schema: {
-            type: "object",
-            properties: {
-              file_path: {
-                type: "string",
-                description: "The absolute path to the file (e.g., 'C:\\Users\\Name\\Documents\\file.txt')"
-              }
-            },
-            required: ["file_path"]
-          }
-        },
-        {
-          name: "open_file",
-          description: "Opens a file using the default system application. Use this when the user confirms they want to open a specific file. The file will open in its associated program (Word for .docx, Adobe for .pdf, etc.).",
-          input_schema: {
-            type: "object",
-            properties: {
-              file_path: {
-                type: "string",
-                description: "The absolute path to the file to open (e.g., 'C:\\Users\\Name\\Documents\\resume.docx')"
-              }
-            },
-            required: ["file_path"]
-          }
-        },
-        {
-          name: "get_recent_files",
-          description: "Gets a list of recently modified files from the user's Desktop, Documents, and Downloads folders. Shows files modified in the last 7 days, sorted by most recent first. Useful when users ask about recent work or what files they were working on.",
-          input_schema: {
-            type: "object",
-            properties: {
-              limit: {
-                type: "number",
-                description: "Maximum number of files to return (default: 10)"
-              }
-            }
-          }
-        },
-        {
-          name: "get_removable_drives",
-          description: "Detects all removable drives (USB drives, thumb drives, external drives) currently connected to the computer. Returns drive letters, labels, and available space. Use this when user mentions moving files to a thumb drive, USB drive, or external drive.",
-          input_schema: {
-            type: "object",
-            properties: {}
-          }
-        },
-        {
-          name: "move_file_to_drive",
-          description: "MOVES a file from its current location to a removable drive. The file is copied to the drive and then DELETED from the original location. After the move, the file will ONLY exist on the removable drive. Use this when the user specifically asks to 'move' a file.",
-          input_schema: {
-            type: "object",
-            properties: {
-              file_path: {
-                type: "string",
-                description: "The absolute path of the file to move (e.g., 'C:\\Users\\Name\\Documents\\file.pdf')"
-              },
-              target_drive: {
-                type: "string",
-                description: "The drive letter with backslash (e.g., 'E:\\' or 'F:\\')"
-              }
-            },
-            required: ["file_path", "target_drive"]
-          }
-        },
-        {
-          name: "copy_file_to_drive",
-          description: "COPIES a file to a removable drive. The file is copied to the drive but the original is KEPT in its current location. After the copy, the file will exist in BOTH places. Use this when the user asks to 'copy' a file or wants to keep the original.",
-          input_schema: {
-            type: "object",
-            properties: {
-              file_path: {
-                type: "string",
-                description: "The absolute path of the file to copy (e.g., 'C:\\Users\\Name\\Documents\\file.pdf')"
-              },
-              target_drive: {
-                type: "string",
-                description: "The drive letter with backslash (e.g., 'E:\\' or 'F:\\')"
-              }
-            },
-            required: ["file_path", "target_drive"]
-          }
-        },
-        {
-          name: "notion_query_database",
-          description: "Query the user's Notion database. Can search for pages, filter results, or get all pages. Returns page data with properties. IMPORTANT: Use notion_get_schema first to find the correct title property name (could be 'Title', 'Name', 'Task', etc). Example filter: {property: 'Title', title: {contains: 'search term'}}. Leave filters empty {} to get all pages.",
-          input_schema: {
-            type: "object",
-            properties: {
-              filters: {
-                type: "object",
-                description: "Optional Notion filter object. Format: {property: 'PropertyName', type: {condition: value}}. Example: {property: 'Title', title: {contains: 'Tech Services'}}. Can be empty {} to get all pages."
-              }
-            }
-          }
-        },
-        {
-          name: "notion_get_schema",
-          description: "Get the structure/schema of the Notion database - shows what properties and fields are available.",
-          input_schema: {
-            type: "object",
-            properties: {}
-          }
-        },
-        {
-          name: "notion_create_page",
-          description: "Create a new page in the Notion database with specified properties. Use notion_get_schema first to see available fields and valid status values. Common statuses: Unprocessed, Needs Review, Upcoming, Processed, Resolved. IMPORTANT: Set 'Estimated Mintues' (note typo) for duration - Lunch=45 min, Break=15 min, default=30 min. ALWAYS include both start AND end times in Event Date. Use Type 'Break' for lunch/breaks, 'Meeting' for meetings, 'Task' for work items.",
-          input_schema: {
-            type: "object",
-            properties: {
-              properties: {
-                type: "object",
-                description: "Page properties as key-value pairs. For status: {Status: {type: 'status', status: {name: 'Unprocessed'}}}. For dates with times - MUST include both start and end: {'Event Date': {type: 'date', date: {start: '2026-02-04T11:30:00.000-05:00', end: '2026-02-04T12:15:00.000-05:00'}}}. For duration: {'Estimated Mintues': {type: 'number', number: 45}}. For type: {Type: {type: 'select', select: {name: 'Break'}}}"
-              }
-            },
-            required: ["properties"]
-          }
-        },
-        {
-          name: "notion_update_page",
-          description: "Update an existing page in the Notion database. REQUIRED when user asks to move/reschedule/change dates. For dates, use format: {PropertyName: {type: 'date', date: {start: '2026-02-04'}}}. For text: {PropertyName: {type: 'rich_text', rich_text: [{text: {content: 'value'}}]}}. MUST call this tool - don't just say you'll do it.",
-          input_schema: {
-            type: "object",
-            properties: {
-              page_id: {
-                type: "string",
-                description: "The Notion page ID to update (from query results)"
-              },
-              properties: {
-                type: "object",
-                description: "Properties to update. For dates: {'Event Date': {type: 'date', date: {start: 'YYYY-MM-DD'}}}"
-              }
-            },
-            required: ["page_id", "properties"]
-          }
-        },
-        {
-          name: "notion_archive_page",
-          description: "Archive (delete) a page from the Notion database. Use when user asks to delete, remove, or clean up tasks/items. REQUIRED - don't just say you'll do it, call this tool.",
-          input_schema: {
-            type: "object",
-            properties: {
-              page_id: {
-                type: "string",
-                description: "The Notion page ID to archive (from query results)"
-              }
-            },
-            required: ["page_id"]
-          }
-        }
-      ];
+      // Get available tools from Arc Task Registry
+      const tools = arcTasks.getAllTools();
       
       const payload = {
         model: modelToUse,
@@ -1898,71 +1766,13 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
           console.log(`   - Input:`, JSON.stringify(toolUse.input));
           
           let result;
-          if (toolUse.name === 'search_file') {
-            const files = await searchForFile(toolUse.input.filename);
-            result = files.length > 0 
-              ? { found: true, files: files, count: files.length }
-              : { found: false, message: `No files named "${toolUse.input.filename}" found in common locations.` };
-          } else if (toolUse.name === 'get_file_info') {
-            result = await getFileInfo(toolUse.input.file_path);
-          } else if (toolUse.name === 'open_file') {
-            result = await openFile(toolUse.input.file_path);
-          } else if (toolUse.name === 'get_recent_files') {
-            const files = await getRecentFiles(toolUse.input.limit || 10);
-            result = { files: files, count: files.length };
-          } else if (toolUse.name === 'get_removable_drives') {
-            const drives = await getRemovableDrives();
-            result = { drives: drives, count: drives.length };
-          } else if (toolUse.name === 'move_file_to_drive') {
-            result = await moveFileToRemovable(toolUse.input.file_path, toolUse.input.target_drive);
-          } else if (toolUse.name === 'copy_file_to_drive') {
-            result = await copyFileToRemovable(toolUse.input.file_path, toolUse.input.target_drive);
-          } else if (toolUse.name === 'notion_query_database') {
-            console.log('   🔍 Querying Notion database...');
-            try {
-              result = await notionManager.queryDatabase(toolUse.input.filters || null);
-              console.log('   ✅ Query returned', result.length, 'results');
-            } catch (err) {
-              console.error('   ❌ Notion query error:', err.message);
-              result = { error: err.message };
-            }
-          } else if (toolUse.name === 'notion_get_schema') {
-            console.log('   📋 Getting Notion schema...');
-            try {
-              result = await notionManager.getDatabaseSchema();
-              console.log('   ✅ Schema retrieved');
-            } catch (err) {
-              console.error('   ❌ Notion schema error:', err.message);
-              result = { error: err.message };
-            }
-          } else if (toolUse.name === 'notion_create_page') {
-            console.log('   ➕ Creating Notion page...');
-            try {
-              result = await notionManager.createPage(toolUse.input.properties);
-              console.log('   ✅ Page created:', result.id);
-            } catch (err) {
-              console.error('   ❌ Notion create error:', err.message);
-              result = { error: err.message };
-            }
-          } else if (toolUse.name === 'notion_update_page') {
-            console.log('   ✏️ Updating Notion page:', toolUse.input.page_id);
-            console.log('   📝 Properties:', JSON.stringify(toolUse.input.properties));
-            try {
-              result = await notionManager.updatePage(toolUse.input.page_id, toolUse.input.properties);
-              console.log('   ✅ Page updated successfully');
-            } catch (err) {
-              console.error('   ❌ Notion update error:', err.message);
-              result = { error: err.message };
-            }
-          } else if (toolUse.name === 'notion_archive_page') {
-            console.log('   🗑️  Archiving Notion page:', toolUse.input.page_id);
-            try {
-              result = await notionManager.archivePage(toolUse.input.page_id);
-              console.log('   ✅ Page archived successfully');
-            } catch (err) {
-              console.error('   ❌ Notion archive error:', err.message);
-              result = { error: err.message };
-            }
+          try {
+            // Execute task through Arc Task Registry
+            result = await arcTasks.executeTask(toolUse.name, toolUse.input);
+            console.log(`   ✅ Task executed successfully`);
+          } catch (err) {
+            console.error(`   ❌ Task execution error:`, err.message);
+            result = { error: err.message };
           }
           
           console.log(`   - Result:`, JSON.stringify(result).substring(0, 200) + '...');
@@ -2038,71 +1848,13 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
             console.log(`   - Input:`, JSON.stringify(toolUse.input));
             
             let result;
-            if (toolUse.name === 'search_file') {
-              const files = await searchForFile(toolUse.input.filename);
-              result = files.length > 0 
-                ? { found: true, files: files, count: files.length }
-                : { found: false, message: `No files named "${toolUse.input.filename}" found in common locations.` };
-            } else if (toolUse.name === 'get_file_info') {
-              result = await getFileInfo(toolUse.input.file_path);
-            } else if (toolUse.name === 'open_file') {
-              result = await openFile(toolUse.input.file_path);
-            } else if (toolUse.name === 'get_recent_files') {
-              const files = await getRecentFiles(toolUse.input.limit || 10);
-              result = { files: files, count: files.length };
-            } else if (toolUse.name === 'get_removable_drives') {
-              const drives = await getRemovableDrives();
-              result = { drives: drives, count: drives.length };
-            } else if (toolUse.name === 'move_file_to_drive') {
-              result = await moveFileToRemovable(toolUse.input.file_path, toolUse.input.target_drive);
-            } else if (toolUse.name === 'copy_file_to_drive') {
-              result = await copyFileToRemovable(toolUse.input.file_path, toolUse.input.target_drive);
-            } else if (toolUse.name === 'notion_query_database') {
-              console.log('   🔍 Querying Notion database...');
-              try {
-                result = await notionManager.queryDatabase(toolUse.input.filters || null);
-                console.log('   ✅ Query returned', result.length, 'results');
-              } catch (err) {
-                console.error('   ❌ Notion query error:', err.message);
-                result = { error: err.message };
-              }
-            } else if (toolUse.name === 'notion_get_schema') {
-              console.log('   📋 Getting Notion schema...');
-              try {
-                result = await notionManager.getDatabaseSchema();
-                console.log('   ✅ Schema retrieved');
-              } catch (err) {
-                console.error('   ❌ Notion schema error:', err.message);
-                result = { error: err.message };
-              }
-            } else if (toolUse.name === 'notion_create_page') {
-              console.log('   ➕ Creating Notion page...');
-              try {
-                result = await notionManager.createPage(toolUse.input.properties);
-                console.log('   ✅ Page created:', result.id);
-              } catch (err) {
-                console.error('   ❌ Notion create error:', err.message);
-                result = { error: err.message };
-              }
-            } else if (toolUse.name === 'notion_update_page') {
-              console.log('   ✏️ Updating Notion page:', toolUse.input.page_id);
-              console.log('   📝 Properties:', JSON.stringify(toolUse.input.properties));
-              try {
-                result = await notionManager.updatePage(toolUse.input.page_id, toolUse.input.properties);
-                console.log('   ✅ Page updated successfully');
-              } catch (err) {
-                console.error('   ❌ Notion update error:', err.message);
-                result = { error: err.message };
-              }
-            } else if (toolUse.name === 'notion_archive_page') {
-              console.log('   🗑️  Archiving Notion page:', toolUse.input.page_id);
-              try {
-                result = await notionManager.archivePage(toolUse.input.page_id);
-                console.log('   ✅ Page archived successfully');
-              } catch (err) {
-                console.error('   ❌ Notion archive error:', err.message);
-                result = { error: err.message };
-              }
+            try {
+              // Execute task through Arc Task Registry
+              result = await arcTasks.executeTask(toolUse.name, toolUse.input);
+              console.log(`   ✅ Task executed successfully`);
+            } catch (err) {
+              console.error(`   ❌ Task execution error:`, err.message);
+              result = { error: err.message };
             }
             
             console.log(`   - Result:`, JSON.stringify(result).substring(0, 200) + '...');
