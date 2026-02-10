@@ -1,5 +1,7 @@
 const input = document.getElementById('input');
-const sendBtn = document.getElementById('send');
+const orb = document.getElementById('orb');
+const barWrap = document.getElementById('bar-wrap');
+const sendBtn = document.getElementById('sendBtn');
 const micBtn = document.getElementById('mic');
 const stopBtn = document.getElementById('stopBtn');
 const wakeWordBtn = document.getElementById('wakeWord');
@@ -24,189 +26,296 @@ const rateVal = document.getElementById('rateVal');
 const pitchVal = document.getElementById('pitchVal');
 const volumeVal = document.getElementById('volumeVal');
 const testVoice = document.getElementById('testVoice');
-const bot = document.getElementById('bot');
 const panel = document.getElementById('panel');
+const debugToggle = document.getElementById('debugToggle');
+const debugPanelEl = document.getElementById('debug-panel');
+const messagesWrap = document.getElementById('messages-wrap');
+const debugLog = document.getElementById('debug-log');
+const debugLastStatus = document.getElementById('debug-last-status');
+const debugLastError = document.getElementById('debug-last-error');
+const debugCopy = document.getElementById('debug-copy');
+const debugClear = document.getElementById('debug-clear');
+const scheduleDateEl = document.getElementById('schedule-date');
+const scheduleMeetingsEl = document.getElementById('schedule-meetings');
+const scheduleTasksEl = document.getElementById('schedule-tasks');
+const scheduleMeetingsWrap = document.getElementById('schedule-meetings-wrap');
+const scheduleTasksWrap = document.getElementById('schedule-tasks-wrap');
+const scheduleProjectsSection = document.getElementById('schedule-projects-section');
+const scheduleProjectsWrap = document.getElementById('schedule-projects-wrap');
+const scheduleProjectsEl = document.getElementById('schedule-projects');
+const scheduleEmptyEl = document.getElementById('schedule-empty');
+const scheduleRefreshBtn = document.getElementById('schedule-refresh-btn');
+const scheduleUpcomingWrap = document.getElementById('schedule-upcoming-wrap');
+const scheduleUpcomingEl = document.getElementById('schedule-upcoming');
+const arcPanel = document.getElementById('arc-panel');
+const arcPanelHeader = document.getElementById('arc-panel-header');
 
-// Debug: Check if all elements exist
-console.log('=== LittleBot Debug ===');
-console.log('settingsBtn:', settingsBtn);
-console.log('settingsModal:', settingsModal);
-console.log('closeSettings:', closeSettings);
-console.log('=====================');
+if (arcPanelHeader && arcPanel) {
+  arcPanelHeader.addEventListener('click', () => arcPanel.classList.toggle('collapsed'));
+}
+
+function renderUpcomingEvents(events) {
+  if (!scheduleUpcomingEl || !scheduleUpcomingWrap) return;
+  if (!events || events.length === 0) {
+    scheduleUpcomingWrap.classList.add('hidden');
+    return;
+  }
+  scheduleUpcomingWrap.classList.remove('hidden');
+  scheduleUpcomingEl.innerHTML = events.map(e => {
+    const t = (e.type || '').toLowerCase();
+    const label = t === 'meeting' ? 'Meeting' : (t === 'task' ? 'Task' : 'Event');
+    const meta = (e.inProgress || e.minutesUntil === 0) ? `Now · ${e.timeStr}` : `in ${e.minutesUntil} min · ${e.timeStr}`;
+    return `<li><span class="schedule-upcoming-time">${escapeHtml(e.timeStr)}</span>${escapeHtml(e.title)}<span class="schedule-upcoming-meta">${label} — ${meta}</span></li>`;
+  }).join('');
+}
+
+/** Highlight schedule items that are in the upcoming-events list (by data-id). Clears highlight when events is empty. */
+function highlightScheduleUpcoming(events) {
+  const ids = (events || []).map(e => e.id).filter(Boolean);
+  if (scheduleMeetingsEl) {
+    scheduleMeetingsEl.querySelectorAll('.schedule-meeting-group[data-id]').forEach(el => {
+      const id = el.getAttribute('data-id');
+      if (ids.includes(id)) el.classList.add('schedule-item-upcoming');
+      else el.classList.remove('schedule-item-upcoming');
+    });
+  }
+  if (scheduleTasksEl) {
+    scheduleTasksEl.querySelectorAll('li[data-id]').forEach(li => {
+      const id = li.getAttribute('data-id');
+      if (ids.includes(id)) li.classList.add('schedule-item-upcoming');
+      else li.classList.remove('schedule-item-upcoming');
+    });
+  }
+}
+
+async function loadUpcomingSchedule() {
+  if (!scheduleDateEl || !scheduleMeetingsEl || !scheduleTasksEl || !scheduleEmptyEl) return;
+  if (!window.electronAPI.getUpcomingSchedule) return;
+  try {
+    const data = await window.electronAPI.getUpcomingSchedule();
+    if (data.error) {
+      if (data.error === 'Notion not configured') {
+        scheduleDateEl.textContent = '';
+        scheduleMeetingsEl.innerHTML = '';
+        scheduleTasksEl.innerHTML = '';
+        if (scheduleProjectsEl) scheduleProjectsEl.innerHTML = '';
+        scheduleEmptyEl.textContent = 'Connect Notion in Settings to see your schedule.';
+        scheduleEmptyEl.classList.remove('hidden');
+        if (scheduleMeetingsWrap) scheduleMeetingsWrap.classList.add('hidden');
+        if (scheduleTasksWrap) scheduleTasksWrap.classList.add('hidden');
+        if (scheduleProjectsSection) scheduleProjectsSection.classList.add('hidden');
+      }
+      return;
+    }
+    scheduleEmptyEl.classList.add('hidden');
+    if (scheduleMeetingsWrap) scheduleMeetingsWrap.classList.remove('hidden');
+    if (scheduleTasksWrap) scheduleTasksWrap.classList.remove('hidden');
+    scheduleDateEl.textContent = data.dateLabel || '';
+    const meetingsList = data.meetings || [];
+    if (meetingsList.length === 0) {
+      scheduleMeetingsEl.innerHTML = '<li class="schedule-none">None</li>';
+    } else {
+      scheduleMeetingsEl.innerHTML = meetingsList.map(m => {
+        const actionItems = m.actionItems || [];
+        const actionList = actionItems.length === 0
+          ? '<li class="schedule-none">None</li>'
+          : actionItems.map(a => `<li>${a.time ? `<span class="schedule-time">${a.time}</span>` : ''}${escapeHtml(a.title)}</li>`).join('');
+        return `<div class="schedule-meeting-group"${m.id ? ` data-id="${escapeHtml(m.id)}"` : ''}><div class="schedule-meeting-title">${m.time ? `<span class="schedule-time">${m.time}</span>` : ''}${escapeHtml(m.title)}</div><ul class="schedule-meeting-action-items">${actionList}</ul></div>`;
+      }).join('');
+    }
+    scheduleTasksEl.innerHTML = (data.tasks || []).map(t => `<li${t.id ? ` data-id="${escapeHtml(t.id)}"` : ''}>${t.time ? `<span class="schedule-time">${t.time}</span>` : ''}${escapeHtml(t.title)}</li>`).join('') || '<li class="schedule-none">None</li>';
+    if (scheduleProjectsEl && scheduleProjectsSection) {
+      const projects = data.projects || [];
+      scheduleProjectsSection.classList.remove('hidden');
+      if (projects.length === 0) {
+        scheduleProjectsEl.innerHTML = '<div class="schedule-project-none">None</div>';
+      } else {
+        scheduleProjectsEl.innerHTML = projects.map(p => {
+          const taskList = (p.tasks || []).map(t => `<li>${escapeHtml(t.title)}</li>`).join('') || '<li class="schedule-none">None</li>';
+          return `<div class="schedule-project-group"><div class="schedule-project-title">${escapeHtml(p.title)}</div><ul class="schedule-project-tasks">${taskList}</ul></div>`;
+        }).join('');
+      }
+    }
+  } catch (e) {
+  }
+}
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// DEBUG: set to true to log panel/reply flow to console (DevTools: Ctrl+Shift+I)
+const DEBUG_PANEL = true;
+function debugPanel(msg, data = {}) {
+  if (!DEBUG_PANEL) return;
+  const info = { time: new Date().toISOString(), ...data };
+  console.log('[Panel] ' + msg, info);
+}
+
+// Theme: from settings; apply and listen for changes
+function applyTheme(isLight) {
+  document.body.classList.toggle('theme-light', isLight);
+  document.body.classList.toggle('theme-dark', !isLight);
+}
+function loadThemeFromSettings() {
+  window.electronAPI.getSettings().then(s => {
+    applyTheme((s && s.theme) === 'light');
+  }).catch(() => {});
+}
+loadThemeFromSettings();
+window.electronAPI.onThemeChanged((theme) => {
+  applyTheme(theme === 'light');
+});
 
 let wakeWordActive = false;
 let isSpeaking = false;
 let currentUtterance = null;
 let hideTimer = null;
+let collapseTimer = null;
+let chatClearTimer = null;
+const COLLAPSE_DELAY_MS = 60000; // collapse to orb after 60s idle
+const PANEL_HIDE_AFTER_MS = 10 * 60 * 1000; // hide panel after 10 mins idle
+const CHAT_CLEAR_AFTER_MS = 2 * 60 * 1000; // clear chat 2 min after last message
 
-// Randomize particle animations for organic movement
-function randomizeParticles() {
-  const particles = document.querySelectorAll('[class^="particle"]');
-  const centerX = 256;
-  const centerY = 256;
-  
-  particles.forEach((particle, index) => {
-    const duration = (Math.random() * 3 + 3).toFixed(2); // 3-6 seconds
-    const delay = -(Math.random() * 5).toFixed(2); // 0-5 second negative delay
-    
-    // Get particle's current position
-    const cx = parseFloat(particle.getAttribute('cx'));
-    const cy = parseFloat(particle.getAttribute('cy'));
-    
-    // Calculate current distance from center
-    const currentDist = Math.sqrt((cx - centerX) ** 2 + (cy - centerY) ** 2);
-    
-    // Calculate angle from center
-    const angle = Math.atan2(cy - centerY, cx - centerX);
-    
-    // Radial movement (toward/away from center) - strictly constrained to 90px
-    const maxAllowedDist = 90;
-    
-    // Calculate safe movement distances that won't exceed boundary
-    let radialDist1 = Math.random() * 8 + 3; // 3-11px
-    let radialDist2 = Math.random() * 8 + 3;
-    const radialDir1 = Math.random() > 0.5 ? 1 : -1;
-    const radialDir2 = Math.random() > 0.5 ? 1 : -1;
-    
-    // If moving away from center, check if it would exceed boundary
-    if (radialDir1 > 0) {
-      radialDist1 = Math.min(radialDist1, maxAllowedDist - currentDist - 5); // Keep 5px buffer
-    }
-    if (radialDir2 > 0) {
-      radialDist2 = Math.min(radialDist2, maxAllowedDist - currentDist - 5);
-    }
-    
-    // Ensure positive values
-    radialDist1 = Math.max(0, radialDist1);
-    radialDist2 = Math.max(0, radialDist2);
-    
-    // Calculate radial movement
-    const tx1 = (Math.cos(angle) * radialDist1 * radialDir1).toFixed(1);
-    const ty1 = (Math.sin(angle) * radialDist1 * radialDir1).toFixed(1);
-    const tx2 = (Math.cos(angle) * radialDist2 * radialDir2).toFixed(1);
-    const ty2 = (Math.sin(angle) * radialDist2 * radialDir2).toFixed(1);
-    
-    // Add orbital/tangential movement (perpendicular to radial) - reduced
-    const orbitalAmount1 = (Math.random() * 10 - 5).toFixed(1); // -5 to 5px
-    const orbitalAmount2 = (Math.random() * 10 - 5).toFixed(1);
-    const ox1 = (-Math.sin(angle) * orbitalAmount1).toFixed(1);
-    const oy1 = (Math.cos(angle) * orbitalAmount1).toFixed(1);
-    const ox2 = (-Math.sin(angle) * orbitalAmount2).toFixed(1);
-    const oy2 = (Math.cos(angle) * orbitalAmount2).toFixed(1);
-    
-    // Combine radial and orbital
-    const finalTx1 = (parseFloat(tx1) + parseFloat(ox1)).toFixed(1);
-    const finalTy1 = (parseFloat(ty1) + parseFloat(oy1)).toFixed(1);
-    const finalTx2 = (parseFloat(tx2) + parseFloat(ox2)).toFixed(1);
-    const finalTy2 = (parseFloat(ty2) + parseFloat(oy2)).toFixed(1);
-    
-    // Hard clamp: ensure final position doesn't exceed 90px from center
-    const maxRadius = 90;
-    
-    // Check position 1
-    const newX1 = cx + parseFloat(finalTx1);
-    const newY1 = cy + parseFloat(finalTy1);
-    const newDist1 = Math.sqrt((newX1 - centerX) ** 2 + (newY1 - centerY) ** 2);
-    
-    let clampedTx1 = finalTx1;
-    let clampedTy1 = finalTy1;
-    
-    if (newDist1 > maxRadius) {
-      const scale = maxRadius / newDist1;
-      clampedTx1 = ((newX1 - cx) * scale).toFixed(1);
-      clampedTy1 = ((newY1 - cy) * scale).toFixed(1);
-    }
-    
-    // Check position 2
-    const newX2 = cx + parseFloat(finalTx2);
-    const newY2 = cy + parseFloat(finalTy2);
-    const newDist2 = Math.sqrt((newX2 - centerX) ** 2 + (newY2 - centerY) ** 2);
-    
-    let clampedTx2 = finalTx2;
-    let clampedTy2 = finalTy2;
-    
-    if (newDist2 > maxRadius) {
-      const scale = maxRadius / newDist2;
-      clampedTx2 = ((newX2 - cx) * scale).toFixed(1);
-      clampedTy2 = ((newY2 - cy) * scale).toFixed(1);
-    }
-    
-    // Rotation (spin)
-    const rotation1 = (Math.random() * 120 - 60).toFixed(0); // -60 to 60 degrees
-    const rotation2 = (Math.random() * 120 - 60).toFixed(0);
-    const rotationDir = Math.random() > 0.5 ? 1 : -1; // clockwise or counter
-    
-    const scale1 = (Math.random() * 0.5 + 0.8).toFixed(2); // 0.8-1.3
-    const scale2 = (Math.random() * 0.5 + 0.8).toFixed(2);
-    const opacity1 = (Math.random() * 0.3 + 0.5).toFixed(2); // 0.5-0.8
-    const opacity2 = (Math.random() * 0.3 + 0.7).toFixed(2); // 0.7-1.0
-    const timing = Math.random() > 0.5 ? 'ease-in-out' : 'ease-out';
-    
-    const keyframeName = `floatRandom${index}`;
-    
-    // Create unique keyframe with radial movement and rotation
-    const keyframes = `
-      @keyframes ${keyframeName} {
-        0%, 100% { 
-          transform: translate(0, 0) scale(1) rotate(0deg); 
-          opacity: ${opacity1}; 
-        }
-        ${(Math.random() * 20 + 30).toFixed(0)}% { 
-          transform: translate(${clampedTx1}px, ${clampedTy1}px) scale(${scale1}) rotate(${rotation1 * rotationDir}deg); 
-          opacity: ${opacity2}; 
-        }
-        ${(Math.random() * 20 + 60).toFixed(0)}% { 
-          transform: translate(${clampedTx2}px, ${clampedTy2}px) scale(${scale2}) rotate(${rotation2 * rotationDir}deg); 
-          opacity: ${(parseFloat(opacity2) * 0.9).toFixed(2)}; 
-        }
-      }
-    `;
-    
-    // Add keyframe to document
-    const existingStyle = document.getElementById(`particle-keyframes-${index}`);
-    if (existingStyle) {
-      existingStyle.innerHTML = keyframes;
-    } else {
-      const style = document.createElement('style');
-      style.id = `particle-keyframes-${index}`;
-      style.innerHTML = keyframes;
-      document.head.appendChild(style);
-    }
-    
-    // Apply animation to particle
-    particle.style.animation = `${keyframeName} ${duration}s ${timing} ${delay}s infinite`;
-  });
+function isCollapsed() {
+  return barWrap && barWrap.classList.contains('collapsed');
 }
 
-// Initialize particle randomization on load
-document.addEventListener('DOMContentLoaded', () => {
-  randomizeParticles();
-  // Re-randomize every 30 seconds for continuous organic feel
-  setInterval(randomizeParticles, 30000);
-});
+function expandBar() {
+  if (!barWrap) return;
+  barWrap.classList.remove('collapsed');
+  if (input) input.focus();
+  startCollapseTimer();
+}
 
-// Auto-hide panel after 60 seconds
+function collapseToOrb() {
+  if (!barWrap) return;
+  barWrap.classList.add('collapsed');
+  if (input) input.blur();
+  if (panel) panel.classList.add('hidden');
+  clearTimeout(collapseTimer);
+  collapseTimer = null;
+}
+
+function startCollapseTimer() {
+  clearTimeout(collapseTimer);
+  collapseTimer = setTimeout(() => {
+    collapseToOrb();
+  }, COLLAPSE_DELAY_MS);
+}
+
+// Auto-hide reply panel after 10 min idle
 function startHideTimer() {
   clearTimeout(hideTimer);
   hideTimer = setTimeout(() => {
-    panel.classList.add('hidden');
-  }, 60000); // 60 seconds
+    if (panel) panel.classList.add('hidden');
+  }, PANEL_HIDE_AFTER_MS);
+}
+
+// Clear chat messages 2 min after last message (user or bot)
+function startChatClearTimer() {
+  clearTimeout(chatClearTimer);
+  chatClearTimer = setTimeout(() => {
+    if (messages) messages.innerHTML = '';
+    chatClearTimer = null;
+  }, CHAT_CLEAR_AFTER_MS);
 }
 
 function showPanel() {
-  panel.classList.remove('hidden');
-  startHideTimer();
+  if (panel) {
+    panel.classList.remove('hidden');
+    startHideTimer();
+  }
 }
 
-// Toggle panel visibility on bot click
-if (bot) {
-  bot.addEventListener('click', () => {
-    if (panel.classList.contains('hidden')) {
-      showPanel();
+function closePanel() {
+  if (input) input.blur();
+  if (panel) panel.classList.add('hidden');
+}
+
+function reopenPanelIfHasMessages() {
+  if (!panel || !messages) return;
+  if (!panel.classList.contains('hidden')) return;
+  if (messages.querySelectorAll('.message').length === 0) return;
+  showPanel();
+}
+
+if (input && panel) {
+  input.addEventListener('focus', () => {
+    reopenPanelIfHasMessages();
+    if (barWrap) startCollapseTimer();
+  });
+}
+
+if (orb) {
+  orb.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isCollapsed()) {
+      expandBar();
+      reopenPanelIfHasMessages();
     } else {
-      clearTimeout(hideTimer);
-      panel.classList.add('hidden');
+      closePanel();
     }
+  });
+  orb.addEventListener('mousedown', (e) => e.stopPropagation());
+}
+
+if (sendBtn && input) {
+  sendBtn.addEventListener('click', () => {
+    if (input.value.trim()) doSend();
+  });
+}
+
+const DEBUG_LOG_MAX = 50;
+const debugLogLines = [];
+const debugLogEl = document.getElementById('debug-log');
+function appendDebugEntry(entry) {
+  const line = `[${entry.ts.split('T')[1].slice(0, 12)}] ${entry.type}: ${entry.message}${entry.detail ? ' · ' + String(entry.detail).slice(0, 80) : ''}`;
+  debugLogLines.push(line);
+  if (debugLogLines.length > DEBUG_LOG_MAX) debugLogLines.shift();
+  if (debugLogEl) {
+    debugLogEl.textContent = debugLogLines.join('\n');
+    debugLogEl.scrollTop = debugLogEl.scrollHeight;
+  }
+  if (entry.type === 'status' && debugLastStatus) {
+    debugLastStatus.textContent = `Last request: ${entry.message}${entry.detail ? ' · ' + entry.detail : ''}`;
+    if (debugLastError) { debugLastError.classList.add('hidden'); debugLastError.textContent = '—'; }
+  }
+  if (entry.type === 'error') {
+    if (debugLastError) {
+      debugLastError.textContent = entry.detail || entry.message;
+      debugLastError.classList.remove('hidden');
+      debugLastError.classList.add('error');
+    }
+  }
+}
+if (window.electronAPI.onArcDebug) {
+  window.electronAPI.onArcDebug((data) => {
+    appendDebugEntry(data);
+  });
+}
+if (debugToggle && debugPanelEl) {
+  debugToggle.addEventListener('click', () => {
+    const collapsed = debugPanelEl.classList.toggle('collapsed');
+    debugToggle.textContent = collapsed ? '▼ Debug' : '▲ Debug';
+  });
+}
+if (debugCopy) {
+  debugCopy.addEventListener('click', () => {
+    const text = debugLogLines.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => { debugCopy.textContent = 'Copied!'; setTimeout(() => { debugCopy.textContent = 'Copy logs'; }, 1500); });
+    }
+  });
+}
+if (debugClear) {
+  debugClear.addEventListener('click', () => {
+    debugLogLines.length = 0;
+    if (debugLogEl) debugLogEl.textContent = '';
+    if (debugLastStatus) debugLastStatus.textContent = '—';
+    if (debugLastError) { debugLastError.textContent = '—'; debugLastError.classList.add('hidden'); }
   });
 }
 
@@ -226,6 +335,11 @@ function parseMarkdown(text) {
 }
 
 function appendMessage(who, text) {
+  debugPanel('appendMessage', { who, textLen: typeof text === 'string' ? text.length : 0, messagesExists: !!messages, panelExists: !!panel, preview: typeof text === 'string' ? text.slice(0, 50) + '...' : String(text).slice(0, 50) });
+  if (!messages) {
+    debugPanel('appendMessage ABORT - no #messages element');
+    return;
+  }
   const el = document.createElement('div');
   el.className = 'message ' + who;
   
@@ -240,11 +354,16 @@ function appendMessage(who, text) {
     el.textContent = text;
   }
   
-  // Append to show newest at bottom
   messages.appendChild(el);
+  const scrollEl = messagesWrap || messages;
+  if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
   
-  // Show panel and reset hide timer
-  showPanel();
+  const count = messages.querySelectorAll('.message').length;
+  debugPanel('message appended', { messageCount: count });
+  
+  if (who === 'bot') showPanel();
+  startHideTimer();
+  startChatClearTimer();
 }
 
 // Parse markdown in bot messages
@@ -265,10 +384,30 @@ async function saveHistory() {
   }
 }
 
+let lastFileSearchResults = [];
+
 // Local command handler for file operations (no API call needed)
 async function handleLocalCommand(text) {
   const lower = text.toLowerCase();
-  
+  const trimmed = text.trim();
+
+  // "1", "2", "open 1", "open 2" after a file list - open that file
+  const openNumMatch = trimmed.match(/^(?:open\s+)?(\d+)$/);
+  if (openNumMatch && lastFileSearchResults.length > 0) {
+    const idx = parseInt(openNumMatch[1], 10) - 1;
+    if (idx >= 0 && idx < lastFileSearchResults.length) {
+      const file = lastFileSearchResults[idx];
+      const filePath = file.path || `${file.directory}\\${file.name}`;
+      try {
+        await window.electronAPI.openFile(filePath);
+        appendMessage('bot', `Opened: ${file.name}`);
+      } catch (e) {
+        appendMessage('bot', `Couldn't open that file.`);
+      }
+      return true;
+    }
+  }
+
   // File search commands
   if (lower.includes('find') || lower.includes('search') || lower.includes('look for')) {
     // Extract filename from common patterns
@@ -283,7 +422,7 @@ async function handleLocalCommand(text) {
       const match = text.match(pattern);
       if (match) {
         const filename = match[1].trim();
-        appendMessage('assistant', `Searching for "${filename}"...`);
+        appendMessage('bot', `Searching for "${filename}"...`);
         
         const results = await window.electronAPI.searchFile(filename);
         
@@ -293,18 +432,22 @@ async function handleLocalCommand(text) {
             response += `${i + 1}. **${file.name}**\n   ${file.directory}\n\n`;
           });
           response += 'Which one would you like to open?';
-          appendMessage('assistant', response);
+          appendMessage('bot', response);
         } else {
-          appendMessage('assistant', `No files found matching "${filename}".`);
+          lastFileSearchResults = [];
+          appendMessage('bot', `No files found matching "${filename}".`);
         }
         return true;
       }
     }
   }
-  
-  // Recent files
-  if (lower.includes('recent') || lower.includes('what was i working on')) {
-    appendMessage('assistant', 'Getting your recent files...');
+
+  lastFileSearchResults = [];
+
+  // Recent files (only when clearly asking for files, not "recently talk about" etc.)
+  const recentFilesPattern = /\b(?:recent\s+files?|what\s+was\s+i\s+working\s+on|(?:show|get|list)\s+recent\s+files?|recent\s+documents?|files?\s+i\s+(?:was\s+)?working\s+on)\b/i;
+  if (recentFilesPattern.test(lower)) {
+    appendMessage('bot', 'Getting your recent files...');
     const files = await window.electronAPI.getRecentFiles(10);
     
     if (files && files.length > 0) {
@@ -312,9 +455,9 @@ async function handleLocalCommand(text) {
       files.forEach((file, i) => {
         response += `${i + 1}. **${file.name}** - ${file.lastModified}\n   ${file.directory} (${file.sizeFormatted})\n\n`;
       });
-      appendMessage('assistant', response);
+      appendMessage('bot', response);
     } else {
-      appendMessage('assistant', 'No recent files found.');
+      appendMessage('bot', 'No recent files found.');
     }
     return true;
   }
@@ -322,50 +465,40 @@ async function handleLocalCommand(text) {
   return false; // Not a local command
 }
 
-sendBtn.addEventListener('click', async () => {
+async function doSend() {
+  if (!input) return;
   const text = input.value.trim();
   if (!text) return;
   appendMessage('user', text);
   input.value = '';
-  
-  // Try to handle locally first
+
   const handledLocally = await handleLocalCommand(text);
-  if (handledLocally) return; // Don't call Claude API
-  
-  // Get conversation history
+  if (handledLocally) return;
+
   const history = [];
   const messageEls = messages.querySelectorAll('.message');
   messageEls.forEach(el => {
-    const who = el.classList.contains('user') ? 'user' : 'assistant';
-    const text = el.textContent.trim();
-    if (text) {
-      history.push({ role: who, content: text });
-    }
+    const who = el.classList.contains('user') ? 'user' : 'bot';
+    const content = el.textContent.trim();
+    if (content) history.push({ role: who, content });
   });
-  history.reverse(); // Reverse because messages are stored in reverse order
-  
+  history.reverse();
   window.electronAPI.sendMessage(text, history);
-});
+  startCollapseTimer();
+}
 
 // Allow Enter key to send message
 if (input) {
   input.addEventListener('keyup', (e) => {
     if (e.key === 'Enter' || e.keyCode === 13) {
       e.preventDefault();
-      console.log('Enter pressed'); // Debug
-      sendBtn.click();
-    }
-  });
-  
-  // Reset hide timer while user is typing
-  input.addEventListener('input', () => {
-    if (!panel.classList.contains('hidden')) {
-      startHideTimer();
+      doSend();
     }
   });
 }
 
 window.electronAPI.onReply((reply) => {
+  debugPanel('onReply received', { replyType: typeof reply, replyLen: typeof reply === 'string' ? reply.length : 0 });
   appendMessage('bot', reply);
 });
 
@@ -415,12 +548,33 @@ if ('speechSynthesis' in window) {
 }
 
 loadSettings().then(() => {
-  // apply loaded settings to UI
   if (voiceSettings.rate) { rateInput.value = voiceSettings.rate; rateVal.textContent = voiceSettings.rate; }
   if (voiceSettings.pitch) { pitchInput.value = voiceSettings.pitch; pitchVal.textContent = voiceSettings.pitch; }
   if (voiceSettings.volume) { volumeInput.value = voiceSettings.volume; volumeVal.textContent = voiceSettings.volume; }
   if (voiceSettings.voiceURI) voiceSelect.value = voiceSettings.voiceURI;
+  loadUpcomingSchedule();
 }).catch(()=>{});
+if (window.electronAPI.onScheduleRefresh) {
+  window.electronAPI.onScheduleRefresh(() => loadUpcomingSchedule());
+}
+const SCHEDULE_POLL_MS = 2 * 60 * 1000;
+let schedulePollTimer = null;
+function startSchedulePoll() {
+  if (schedulePollTimer) return;
+  schedulePollTimer = setInterval(() => loadUpcomingSchedule(), SCHEDULE_POLL_MS);
+}
+function stopSchedulePoll() {
+  if (schedulePollTimer) { clearInterval(schedulePollTimer); schedulePollTimer = null; }
+}
+startSchedulePoll();
+
+if (scheduleRefreshBtn) {
+  scheduleRefreshBtn.addEventListener('click', async () => {
+    scheduleRefreshBtn.classList.add('refreshing');
+    await loadUpcomingSchedule();
+    setTimeout(() => scheduleRefreshBtn.classList.remove('refreshing'), 400);
+  });
+}
 
 // Speech-to-text using Windows Speech Recognition (works offline!)
 let recognizing = false;
@@ -869,13 +1023,33 @@ window.electronAPI.onTopicLearned((data) => {
 
 // Listen for event notifications
 window.electronAPI.onNotification((message) => {
-  console.log('[Event Notification]:', message);
-  
-  // Show panel if hidden
-  if (panel.classList.contains('hidden')) {
-    showPanel();
+  if (typeof message === 'string' && message.startsWith('⏰') && /Upcoming (Task|Meeting|Event)/i.test(message)) {
+    return;
   }
-  
-  // Display notification message from Arc
+  console.log('[Event Notification]:', message);
   appendMessage('bot', message);
+});
+if (window.electronAPI.onUpcomingEvents) {
+  window.electronAPI.onUpcomingEvents((events) => {
+    renderUpcomingEvents(events);
+    highlightScheduleUpcoming(events);
+  });
+}
+
+// Listen for memory writes
+window.electronAPI.onMemoryWrite((data) => {
+  const { type, data: memoryData } = data;
+  
+  if (type === 'fact') {
+    console.log('📝 MEMORY WRITE [FACT]:', memoryData.text);
+    console.log('   Category:', memoryData.category);
+    console.log('   ID:', memoryData.id);
+    
+    // Don't show in chat - only log to console for debugging
+  } else if (type === 'topic') {
+    console.log('📚 MEMORY WRITE [TOPIC]:', memoryData.topic);
+    console.log('   Knowledge:', memoryData.knowledge);
+    
+    // Don't show in chat - only log to console for debugging
+  }
 });

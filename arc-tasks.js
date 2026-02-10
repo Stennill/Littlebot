@@ -233,58 +233,6 @@ class ArcTaskRegistry {
     }, async (input) => {
       return await this.handlers.notionGetSchema();
     });
-
-    this.registerTask('notion_create_page', {
-      description: "Create a new page in the Notion database with properties. IMPORTANT: Call notion_get_schema first to see available properties and their types. Use exact property names and valid values from the schema.",
-      input_schema: {
-        type: "object",
-        properties: {
-          properties: {
-            type: "object",
-            description: "Page properties as key-value pairs. Example: {Title: 'Task name', Status: 'In Progress', Priority: 'High'}"
-          }
-        },
-        required: ["properties"]
-      }
-    }, async (input) => {
-      return await this.handlers.notionCreatePage(input.properties);
-    });
-
-    this.registerTask('notion_update_page', {
-      description: "Update an existing Notion page. Use this to modify properties, change status, reschedule times, etc. IMPORTANT: Get the page_id from a notion_query_database call first.",
-      input_schema: {
-        type: "object",
-        properties: {
-          page_id: {
-            type: "string",
-            description: "The ID of the page to update (from query results)"
-          },
-          properties: {
-            type: "object",
-            description: "Properties to update. Example: {Status: 'Done', 'Event Date': '2026-02-10T14:00:00'}"
-          }
-        },
-        required: ["page_id", "properties"]
-      }
-    }, async (input) => {
-      return await this.handlers.notionUpdatePage(input.page_id, input.properties);
-    });
-
-    this.registerTask('notion_archive_page', {
-      description: "Archive (delete) a page from the Notion database. Use this when the user asks to delete, remove, or clean up an item. IMPORTANT: Get the page_id from a notion_query_database call first.",
-      input_schema: {
-        type: "object",
-        properties: {
-          page_id: {
-            type: "string",
-            description: "The ID of the page to archive/delete"
-          }
-        },
-        required: ["page_id"]
-      }
-    }, async (input) => {
-      return await this.handlers.notionArchivePage(input.page_id);
-    });
   }
 
   // ========================================
@@ -292,8 +240,120 @@ class ArcTaskRegistry {
   // ========================================
   
   registerMemoryTasks() {
-    // Memory tasks can be added later if needed
-    // For now, memory is managed through the memoryStore service directly in main.js
+    this.registerTask('memory_search', {
+      description: "Search memory for specific information. Use this to recall facts about the user, find stored knowledge on topics, or search conversation history. Returns relevant facts, topic knowledge, and recent context matching the query.",
+      input_schema: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "What to search for in memory (e.g., 'user name', 'schedule preferences', 'timezone', 'recent projects')"
+          }
+        },
+        required: ["query"]
+      }
+    }, async (input) => {
+      const memories = await this.services.memoryStore.getRelevantMemories(input.query);
+      
+      // Format the results clearly
+      const result = {
+        query: input.query,
+        facts: memories.facts.map(f => ({ text: f.text, category: f.category })),
+        topics: memories.topics.map(t => ({ 
+          topic: t.topic, 
+          knowledge: t.entries.map(e => e.text) 
+        })),
+        recentContext: memories.recentContext.map(c => c.summary),
+        totalFacts: memories.facts.length,
+        totalTopics: memories.topics.length
+      };
+      
+      return result;
+    });
+
+    this.registerTask('memory_get_category', {
+      description: "Get all facts from a specific category. Categories include: 'user' (identity, preferences), 'identity', 'general', etc. Use this to retrieve focused information like core identity or specific preferences.",
+      input_schema: {
+        type: "object",
+        properties: {
+          category: {
+            type: "string",
+            description: "The category to retrieve (e.g., 'user', 'identity', 'general')"
+          }
+        },
+        required: ["category"]
+      }
+    }, async (input) => {
+      const allFacts = await this.services.memoryStore.getAllFacts();
+      const categoryFacts = allFacts.filter(f => 
+        (f.category || 'general').toLowerCase() === input.category.toLowerCase()
+      );
+      
+      return {
+        category: input.category,
+        facts: categoryFacts.map(f => ({ text: f.text, timestamp: f.timestamp })),
+        count: categoryFacts.length
+      };
+    });
+
+    this.registerTask('memory_get_recent', {
+      description: "Get the most recent memory entries (facts and topics). Useful for understanding what was just discussed or learned. Returns the last N facts and recently accessed topics.",
+      input_schema: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Number of recent entries to retrieve (default: 10)"
+          }
+        }
+      }
+    }, async (input) => {
+      const limit = input.limit || 10;
+      const allFacts = await this.services.memoryStore.getAllFacts();
+      const allTopics = await this.services.memoryStore.getAllTopics();
+      
+      // Get most recent facts
+      const recentFacts = allFacts.slice(-limit).reverse();
+      
+      // Get recently accessed topics
+      const topicsArray = Object.entries(allTopics).map(([key, data]) => ({
+        topic: data.name,
+        lastAccessed: data.lastAccessed,
+        entries: data.entries
+      }));
+      topicsArray.sort((a, b) => b.lastAccessed - a.lastAccessed);
+      const recentTopics = topicsArray.slice(0, Math.min(5, limit));
+      
+      return {
+        recentFacts: recentFacts.map(f => ({ text: f.text, category: f.category, timestamp: f.timestamp })),
+        recentTopics: recentTopics.map(t => ({
+          topic: t.topic,
+          latestKnowledge: t.entries.slice(-3).map(e => e.text)
+        })),
+        factCount: recentFacts.length,
+        topicCount: recentTopics.length
+      };
+    });
+
+    this.registerTask('memory_get_all_topics', {
+      description: "Get a complete list of all topics stored in memory with their knowledge entries. Use this to see what subjects have been discussed and what Arc knows about each topic.",
+      input_schema: {
+        type: "object",
+        properties: {}
+      }
+    }, async (input) => {
+      const allTopics = await this.services.memoryStore.getAllTopics();
+      const topics = Object.entries(allTopics).map(([key, data]) => ({
+        topic: data.name,
+        knowledge: data.entries.map(e => e.text),
+        entryCount: data.entries.length
+      }));
+      
+      return {
+        topics: topics,
+        totalTopics: topics.length
+      };
+    });
   }
 
   // ========================================

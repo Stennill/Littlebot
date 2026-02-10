@@ -4,6 +4,7 @@ const anthropicModelInput = document.getElementById('anthropicModelInput');
 const slackWebhookInput = document.getElementById('slackWebhookInput');
 const notionApiKeyInput = document.getElementById('notionApiKeyInput');
 const notionDatabaseIdInput = document.getElementById('notionDatabaseIdInput');
+const themeSelect = document.getElementById('themeSelect');
 const voiceSelect = document.getElementById('voiceSelect');
 const rateInput = document.getElementById('rateInput');
 const pitchInput = document.getElementById('pitchInput');
@@ -35,6 +36,7 @@ async function loadSettings() {
       if (s.slackWebhook) slackWebhookInput.value = s.slackWebhook;
       if (s.notionApiKey) notionApiKeyInput.value = s.notionApiKey;
       if (s.notionDatabaseId) notionDatabaseIdInput.value = s.notionDatabaseId;
+      if (s.theme) themeSelect.value = s.theme;
       
       if (s.voice) {
         if (s.voice.rate) rateInput.value = s.voice.rate;
@@ -115,6 +117,7 @@ saveBtn.addEventListener('click', async () => {
   const slackWebhook = slackWebhookInput.value.trim() || null;
   const notionKey = notionApiKeyInput.value.trim() || null;
   const notionDbId = notionDatabaseIdInput.value.trim() || null;
+  const theme = themeSelect.value || 'dark';
   const voice = {
     voiceURI: voiceSelect.value,
     rate: parseFloat(rateInput.value),
@@ -130,6 +133,7 @@ saveBtn.addEventListener('click', async () => {
       slackWebhook: slackWebhook,
       notionApiKey: notionKey,
       notionDatabaseId: notionDbId,
+      theme: theme,
       voice: voice
     });
     

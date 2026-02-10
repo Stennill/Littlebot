@@ -10,6 +10,24 @@ class ContextBuilder {
   }
 
   /**
+   * Detect query intent for smart context injection
+   */
+  detectIntent(userMessage) {
+    const msgLower = userMessage.toLowerCase();
+    
+    const intents = {
+      schedule: /\b(schedule|calendar|event|meeting|appointment|notion|task|todo)\b/i.test(msgLower),
+      identity: /\b(my name|who am i|what.*know about me|remember.*me)\b/i.test(msgLower),
+      recall: /\b(remember|recall|what did|earlier|before|previous|last time)\b/i.test(msgLower),
+      file: /\b(file|document|folder|pdf|docx|find|search|open)\b/i.test(msgLower),
+      recent: /\b(recent|latest|just|today|yesterday|this week)\b/i.test(msgLower),
+      preference: /\b(prefer|like|favorite|usual|normally|typically)\b/i.test(msgLower)
+    };
+    
+    return intents;
+  }
+
+  /**
    * Extract keywords from user input
    */
   extractKeywords(text) {
@@ -93,12 +111,43 @@ class ContextBuilder {
     // Extract keywords from user message
     const keywords = this.extractKeywords(userMessage);
     
+    // Detect intent for smart context injection
+    const intent = this.detectIntent(userMessage);
+    
     // TIER 1: Core identity (always load)
     const coreFacts = this.getCoreIdentity(memory.facts || []);
     
-    // TIER 2: Relevant facts (based on keywords)
+    // TIER 2: Intent-based facts (prioritize based on query type)
+    let priorityFacts = [];
+    
+    if (intent.identity) {
+      // Load all user/identity facts
+      priorityFacts = (memory.facts || [])
+        .filter(f => ['user', 'identity'].includes(f.category))
+        .slice(0, 20);
+    } else if (intent.preference) {
+      // Load preference-related facts
+      priorityFacts = (memory.facts || [])
+        .filter(f => {
+          const text = f.text.toLowerCase();
+          return text.includes('prefer') || text.includes('like') || 
+                 text.includes('favorite') || f.category === 'preference';
+        })
+        .slice(0, 15);
+    } else if (intent.schedule) {
+      // Load Notion/schedule-related facts
+      priorityFacts = (memory.facts || [])
+        .filter(f => {
+          const text = f.text.toLowerCase();
+          return text.includes('notion') || text.includes('schedule') || 
+                 text.includes('timezone') || text.includes('calendar');
+        })
+        .slice(0, 15);
+    }
+    
+    // TIER 3: Relevant facts (based on keywords)
     const relevantFacts = (memory.facts || [])
-      .filter(fact => !coreFacts.includes(fact)) // Exclude core facts
+      .filter(fact => !coreFacts.includes(fact) && !priorityFacts.includes(fact))
       .map(fact => ({
         fact,
         score: this.calculateRelevance(fact, keywords)
@@ -128,7 +177,16 @@ class ContextBuilder {
     relevantTopics.sort((a, b) => b.score - a.score);
     const topTopics = relevantTopics.slice(0, 5); // Top 5 relevant topics
     
-    // TIER 3: Recent conversation context (last 3)
+    // TIER 4: Recent facts if "recent" intent detected
+    let recentFacts = [];
+    if (intent.recent || intent.recall) {
+      recentFacts = (memory.facts || [])
+        .filter(f => !coreFacts.includes(f) && !priorityFacts.includes(f) && !relevantFacts.includes(f))
+        .slice(-10) // Last 10 facts
+        .reverse();
+    }
+    
+    // TIER 5: Recent conversation context (last 3)
     const recentContext = (memory.conversations || []).slice(-3);
     
     // Format context string
@@ -142,10 +200,26 @@ class ContextBuilder {
       });
     }
     
+    // Priority facts (intent-based)
+    if (priorityFacts.length > 0) {
+      context += '\n⭐ PRIORITY CONTEXT:\n';
+      priorityFacts.forEach(fact => {
+        context += `• ${fact.text}\n`;
+      });
+    }
+    
     // Relevant facts
     if (relevantFacts.length > 0) {
       context += '\n🎯 RELEVANT FACTS:\n';
       relevantFacts.forEach(fact => {
+        context += `• ${fact.text}\n`;
+      });
+    }
+    
+    // Recent facts
+    if (recentFacts.length > 0) {
+      context += '\n🕐 RECENT MEMORIES:\n';
+      recentFacts.forEach(fact => {
         context += `• ${fact.text}\n`;
       });
     }
@@ -172,12 +246,15 @@ class ContextBuilder {
     // Add statistics for transparency
     const stats = {
       coreFacts: coreFacts.length,
+      priorityFacts: priorityFacts.length,
       relevantFacts: relevantFacts.length,
+      recentFacts: recentFacts.length,
       relevantTopics: topTopics.length,
       recentContext: recentContext.length,
       totalFacts: (memory.facts || []).length,
       totalTopics: Object.keys(memory.topics || {}).length,
-      keywords: keywords.slice(0, 5).join(', ')
+      keywords: keywords.slice(0, 5).join(', '),
+      detectedIntents: Object.entries(intent).filter(([k, v]) => v).map(([k]) => k)
     };
     
     console.log('📊 Context Stats:', stats);

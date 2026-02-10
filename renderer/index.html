@@ -4,250 +4,75 @@
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LittleBot</title>
+  <title>Arc Notion Sidebar</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <div id="app">
-    <div id="bot">
-      <!-- Arc Reactor / JARVIS HUD orb — ULTRA THIN + SLOWED WAY DOWN (transparent)
-           Changes:
-           - Ring spins: 28s / 20s / 24s
-           - Core pulses: 6.5s / 10s
-           - Particle orbits: ~10–18s
-           - Twinkle: 8–12s
-      -->
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-label="Arc Reactor HUD (ultra thin, slow)">
-        <defs>
-          <radialGradient id="gCore" cx="50%" cy="50%" r="55%">
-            <stop offset="0%"  stop-color="#ffffff" stop-opacity="1"/>
-            <stop offset="18%" stop-color="#eaffff" stop-opacity="0.92"/>
-            <stop offset="42%" stop-color="#7cf3ff" stop-opacity="0.60"/>
-            <stop offset="100%" stop-color="#00c8ff" stop-opacity="0"/>
-          </radialGradient>
+<body class="theme-dark">
+  <div id="app-wrap">
+    <div id="sidebar">
+      <header id="sidebar-header" class="drag-region">
+        <span id="sidebar-title">Arc Notion Sidebar</span>
+        <div id="header-actions">
+          <button id="settingsBtn" type="button" title="Settings">&#9881;</button>
+          <button id="debugToggle" type="button" title="Toggle Debug">▼ Debug</button>
+        </div>
+      </header>
 
-          <radialGradient id="gHot" cx="48%" cy="46%" r="40%">
-            <stop offset="0%"  stop-color="#ffffff" stop-opacity="1"/>
-            <stop offset="35%" stop-color="#ffffff" stop-opacity="0.55"/>
-            <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-          </radialGradient>
+      <section id="schedule-section">
+        <div class="schedule-header-row">
+          <div id="schedule-header">Schedule</div>
+          <button type="button" id="schedule-refresh-btn" class="schedule-refresh-btn" title="Refresh schedule from Notion">↻</button>
+        </div>
+        <div id="schedule-date" class="schedule-date"></div>
+        <div id="schedule-meetings-wrap" class="schedule-list-wrap">
+          <div class="schedule-subtitle"><span class="schedule-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 6h12M5 1v2M11 1v2"/></svg></span>Meetings</div>
+          <ul id="schedule-meetings"></ul>
+        </div>
+        <div id="schedule-tasks-wrap" class="schedule-list-wrap">
+          <div class="schedule-subtitle"><span class="schedule-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h3v3H2zM7 4h7M7 8h7M7 12h4"/><path d="M2 5.5l1.5 1.5L6 4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Tasks</div>
+          <ul id="schedule-tasks"></ul>
+        </div>
+        <section id="schedule-projects-section" class="schedule-block-projects" aria-label="Projects">
+          <div id="schedule-projects-wrap" class="schedule-list-wrap">
+            <div class="schedule-subtitle"><span class="schedule-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h5v9H2zM7 4h7l2 2v7H7V4z"/></svg></span>Projects</div>
+            <div id="schedule-projects"></div>
+          </div>
+        </section>
+        <div id="schedule-upcoming-wrap" class="schedule-upcoming-wrap hidden">
+          <div class="schedule-subtitle schedule-upcoming-title"><span class="schedule-icon" aria-hidden="true">⏰</span>Upcoming</div>
+          <ul id="schedule-upcoming"></ul>
+        </div>
+        <div id="schedule-empty" class="schedule-empty hidden">Connect Notion in Settings to see your schedule.</div>
+      </section>
 
-          <linearGradient id="gRing" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#00d6ff" stop-opacity="0.95"/>
-            <stop offset="55%" stop-color="#7cf3ff" stop-opacity="0.90"/>
-            <stop offset="100%" stop-color="#2a6bff" stop-opacity="0.90"/>
-          </linearGradient>
-
-          <linearGradient id="gRing2" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#2a6bff" stop-opacity="0.55"/>
-            <stop offset="50%" stop-color="#00d6ff" stop-opacity="0.80"/>
-            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.18"/>
-          </linearGradient>
-
-          <radialGradient id="gParticle" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
-            <stop offset="45%" stop-color="#7cf3ff" stop-opacity="0.65"/>
-            <stop offset="100%" stop-color="#00bfff" stop-opacity="0"/>
-          </radialGradient>
-
-          <filter id="fGlow" x="-160%" y="-160%" width="420%" height="420%">
-            <feGaussianBlur stdDeviation="3.8" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-
-          <filter id="fBloom" x="-170%" y="-170%" width="440%" height="440%">
-            <feGaussianBlur stdDeviation="16" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-
-          <filter id="fSpark" x="-190%" y="-190%" width="480%" height="480%">
-            <feGaussianBlur stdDeviation="2.4" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-
-          <filter id="fShadow" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
-            <feOffset dx="0" dy="2" result="offsetblur"/>
-            <feComponentTransfer>
-              <feFuncA type="linear" slope="0.8"/>
-            </feComponentTransfer>
-            <feMerge>
-              <feMergeNode/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-
-          <clipPath id="clipCore">
-            <circle cx="256" cy="256" r="120"/>
-          </clipPath>
-
-          <path id="o1" d="M256,256 m-70,0 a70,50 0 1,0 140,0 a70,50 0 1,0 -140,0"/>
-          <path id="o2" d="M256,256 m-50,0 a50,80 0 1,0 100,0 a50,80 0 1,0 -100,0"/>
-          <path id="o3" d="M256,256 m-90,0 a90,70 0 1,0 180,0 a90,70 0 1,0 -180,0"/>
-        </defs>
-
-        <style>
-          /* Organic spinning with dramatic speed variations */
-          .spinSlow { 
-            transform-origin: 256px 256px; 
-            animation: spinOrganic1 20s cubic-bezier(0.65, 0.05, 0.35, 0.95) infinite; 
-          }
-          .spinFast { 
-            transform-origin: 256px 256px; 
-            animation: spinOrganic2 14s cubic-bezier(0.68, -0.15, 0.32, 1.15) reverse infinite; 
-          }
-          .spinMid  { 
-            transform-origin: 256px 256px; 
-            animation: spinOrganic3 17s cubic-bezier(0.5, -0.1, 0.5, 1.1) infinite; 
-            opacity: .82; 
-          }
-
-          /* Dramatic breathing pulse */
-          .pulse { 
-            transform-origin: 256px 256px; 
-            animation: breathe 4.5s ease-in-out infinite, shimmer 2.8s ease-in-out infinite; 
-          }
-          .pulse2 { 
-            transform-origin: 256px 256px; 
-            animation: breathe2 6.5s ease-in-out infinite, float 5s ease-in-out infinite; 
-          }
-
-          /* Exaggerated twinkle */
-          .tw  { animation: twinkle1 5.5s ease-in-out infinite; }
-          .tw2 { animation: twinkle2 7s ease-in-out infinite; }
-
-          /* Dramatic organic rotation with big acceleration/deceleration */
-          @keyframes spinOrganic1 { 
-            0% { transform: rotate(0deg); }
-            20% { transform: rotate(95deg); }
-            45% { transform: rotate(170deg); }
-            50% { transform: rotate(185deg); }
-            75% { transform: rotate(265deg); }
-            100% { transform: rotate(360deg); }
-          }
-          
-          @keyframes spinOrganic2 { 
-            0% { transform: rotate(0deg); }
-            15% { transform: rotate(45deg); }
-            35% { transform: rotate(125deg); }
-            65% { transform: rotate(230deg); }
-            85% { transform: rotate(315deg); }
-            100% { transform: rotate(360deg); }
-          }
-          
-          @keyframes spinOrganic3 { 
-            0% { transform: rotate(0deg); }
-            25% { transform: rotate(75deg); }
-            40% { transform: rotate(155deg); }
-            60% { transform: rotate(205deg); }
-            85% { transform: rotate(305deg); }
-            100% { transform: rotate(360deg); }
-          }
-
-          /* Dramatic breathing - really expands and contracts */
-          @keyframes breathe { 
-            0%, 100% { transform: scale(0.92); opacity: .65; }
-            15% { transform: scale(0.98); opacity: .78; }
-            35% { transform: scale(1.08); opacity: .90; }
-            50% { transform: scale(1.16); opacity: 1; }
-            65% { transform: scale(1.08); opacity: .90; }
-            85% { transform: scale(0.98); opacity: .78; }
-          }
-          
-          @keyframes breathe2 { 
-            0%, 100% { transform: scale(0.88); opacity: .12; }
-            25% { transform: scale(1.02); opacity: .28; }
-            50% { transform: scale(1.18); opacity: .50; }
-            75% { transform: scale(1.08); opacity: .38; }
-          }
-
-          /* Strong shimmer effect */
-          @keyframes shimmer {
-            0%, 100% { filter: brightness(0.9); }
-            25% { filter: brightness(1.1); }
-            50% { filter: brightness(1.35); }
-            75% { filter: brightness(1.1); }
-          }
-
-          /* Pronounced floating motion */
-          @keyframes float {
-            0%, 100% { transform: scale(0.95) translateY(0); }
-            20% { transform: scale(1.02) translateY(-3px); }
-            50% { transform: scale(1.12) translateY(2px); }
-            80% { transform: scale(1.06) translateY(-2px); }
-          }
-
-          /* Dramatic twinkling with big opacity swings */
-          @keyframes twinkle1 { 
-            0%, 100% { opacity: .08; }
-            15% { opacity: .55; }
-            30% { opacity: .18; }
-            50% { opacity: .82; }
-            65% { opacity: .28; }
-            80% { opacity: .68; }
-          }
-          
-          @keyframes twinkle2 { 
-            0%, 100% { opacity: .12; }
-            20% { opacity: .70; }
-            40% { opacity: .22; }
-            60% { opacity: .88; }
-            80% { opacity: .35; }
-          }
-
-          @media (prefers-reduced-motion: reduce){
-            .spinSlow,.spinFast,.spinMid,.pulse,.pulse2,.tw,.tw2{ animation:none !important; }
-          }
-        </style>
-
-        <!-- Shadow layer for visibility on light backgrounds -->
-        <circle cx="256" cy="256" r="180" fill="rgba(0, 0, 0, 0.15)" filter="url(#fShadow)"/>
-
-        <!-- Inner ring only -->
-        <g filter="url(#fGlow)" style="mix-blend-mode:screen">
-          <g class="spinMid">
-            <circle cx="256" cy="256" r="92" fill="none" stroke="#ffffff" stroke-width="0.40"
-                    stroke-linecap="round" stroke-dasharray="10 10 2 14 6 12 2 18" opacity="0.22"/>
-          </g>
-        </g>
-
-        <!-- Core bloom -->
-        <g filter="url(#fBloom)" style="mix-blend-mode:screen">
-          <g class="pulse2">
-            <circle cx="256" cy="256" r="108" fill="url(#gCore)" opacity="0.40"/>
-            <circle cx="256" cy="256" r="86"  fill="url(#gCore)" opacity="0.50"/>
-            <circle cx="256" cy="256" r="64"  fill="url(#gCore)" opacity="0.60"/>
-          </g>
-        </g>
-
-        <!-- Center lens + nucleus (hairline) -->
-        <g filter="url(#fGlow)" style="mix-blend-mode:screen">
-          <circle cx="256" cy="256" r="78" fill="none" stroke="#ffffff" stroke-width="0.55" opacity="0.30"/>
-          <circle cx="256" cy="256" r="72" fill="none" stroke="#7cf3ff" stroke-width="0.45" opacity="0.28"/>
-
-          <g class="pulse">
-            <circle cx="256" cy="256" r="46" fill="url(#gCore)" opacity="0.95"/>
-            <circle cx="256" cy="256" r="32" fill="url(#gHot)" opacity="1.0"/>
-            <circle cx="256" cy="256" r="12" fill="#ffffff" opacity="0.45"/>
-          </g>
-        </g>
-
-        <!-- Swirling particles (slow) -->
-        <g id="particles" clip-path="url(#clipCore)" filter="url(#fSpark)" style="mix-blend-mode:screen">
-          <circle cx="256" cy="256" r="80" fill="url(#gCore)" opacity="0.30"/>
-          <!-- Particles will be dynamically added here based on topics learned -->
-        </g>
-      </svg>
+      <section id="debug-panel" class="collapsed">
+        <div id="debug-status">
+          <span id="debug-last-status">—</span>
+          <span id="debug-last-error" class="hidden">—</span>
+        </div>
+        <div id="debug-actions">
+          <button id="debug-copy" type="button">Copy logs</button>
+          <button id="debug-clear" type="button">Clear</button>
+        </div>
+        <pre id="debug-log"></pre>
+      </section>
     </div>
 
-    <div id="panel">
-      <div id="messages"></div>
-      <div id="controls">
-        <input id="input" placeholder="Ask me anything..." autocomplete="off" />
-        <button id="send" title="Send">→</button>
-        <button id="settingsBtn" title="Settings">⚙️</button>
+    <aside id="arc-panel">
+      <header id="arc-panel-header" title="Expand / collapse Arc">
+        <span id="arc-panel-title">Arc</span>
+        <span id="arc-panel-chevron" aria-hidden="true">▶</span>
+      </header>
+      <div id="arc-panel-body">
+        <main id="messages-wrap">
+          <div id="messages"></div>
+        </main>
+        <footer id="input-wrap">
+          <input id="input" type="text" placeholder="ask me anything" autocomplete="off" />
+          <button id="sendBtn" type="button" title="Send">▶</button>
+        </footer>
       </div>
-    </div>
+    </aside>
   </div>
 
   <div id="settingsModal" class="hidden">
@@ -258,7 +83,7 @@
       <label>Anthropic-Version (optional)</label>
       <input id="anthropicVersionInput" placeholder="e.g. 2024-04-01" />
       <label>Anthropic Model (optional)</label>
-      <input id="anthropicModelInput" placeholder="e.g. claude-3-haiku-20240307" />
+      <input id="anthropicModelInput" placeholder="e.g. claude-3-5-sonnet-20241022 (livelier) or claude-3-haiku-20240307 (faster)" />
       <label>Slack Webhook URL (optional)</label>
       <input id="slackWebhookInput" placeholder="https://hooks.slack.com/services/..." />
       <label>Voice</label>

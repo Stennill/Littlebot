@@ -44,6 +44,18 @@ async function loadVersionInfo() {
   }
 }
 
+// Strip italicized stage directions (e.g. *chuckles*, *nods*) from Arc's reply - user prefers plain dialogue only
+function stripItalicizedActions(text) {
+  if (typeof text !== 'string') return text;
+  const actionWords = ['chuckles', 'chuckle', 'nods', 'nod', 'smirks', 'smirk', 'sighs', 'sigh', 'laughs', 'laugh', 'grins', 'grin', 'winks', 'wink', 'smiles', 'smile', 'shrugs', 'shrug', 'waves', 'wave', 'nods', 'frowns', 'frown', 'grunts', 'grunt', 'snickers', 'snicker', 'chortles', 'chortle', 'scoffs', 'scoff', 'clears throat', 'raises eyebrow', 'raises eyebrows', 'tilts head', 'rolls eyes', 'leans in', 'leans back'];
+  let out = text;
+  for (const word of actionWords) {
+    const re = new RegExp(`\\*\\s*${word.replace(/\s+/g, '\\s+')}\\s*\\*`, 'gi');
+    out = out.replace(re, '');
+  }
+  return out.replace(/\s{2,}/g, ' ').trim();
+}
+
 // Load system prompt from file (Arc's persona)
 async function loadSystemPrompt() {
   try {
@@ -131,7 +143,7 @@ function createMemoryWindow() {
     transparent: false,
     alwaysOnTop: true,
     resizable: true,
-    title: 'LittleBot Memory',
+    title: 'Arc Notion Sidebar - Memory',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -162,7 +174,7 @@ function createSettingsWindow() {
     transparent: false,
     alwaysOnTop: true,
     resizable: false,
-    title: 'LittleBot Settings',
+    title: 'Arc Notion Sidebar - Settings',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -177,17 +189,35 @@ function createSettingsWindow() {
 
   settingsWindow.on('closed', () => {
     settingsWindow = null;
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('schedule-refresh');
   });
 }
 
+function sendArcDebug(payload) {
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+    const p = typeof payload === 'string' ? { type: 'log', message: payload } : payload;
+    mainWindow.webContents.send('arc-debug', {
+      ts: new Date().toISOString(),
+      type: p.type || 'log',
+      message: p.message || '',
+      detail: p.detail
+    });
+  }
+}
+
 function createWindow() {
+  const SIDEBAR_WIDTH = 420;
   const win = new BrowserWindow({
-    width: 800,
-    height: 700,
+    width: SIDEBAR_WIDTH,
+    height: 800,
     frame: false,
-    transparent: true,
-    alwaysOnTop: true,
-    resizable: false,
+    transparent: false,
+    alwaysOnTop: false,
+    resizable: true,
+    minWidth: 320,
+    maxWidth: 600,
+    skipTaskbar: true,
+    backgroundColor: '#1c2029',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -206,7 +236,6 @@ function createWindow() {
     }
   });
   
-  // Also handle permission checks
   session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
     if (permission === 'media' || permission === 'microphone') {
       return true;
@@ -215,17 +244,26 @@ function createWindow() {
   });
 
   mainWindow = win;
+
+  win.on('focus', () => {
+    if (win && !win.isDestroyed() && win.webContents) win.webContents.send('schedule-refresh');
+  });
+
+  const DEBUG_DEVTOOLS = false;
+  win.webContents.on('did-finish-load', () => {
+    if (DEBUG_DEVTOOLS) win.webContents.openDevTools({ mode: 'detach' });
+  });
   
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   
-  // Position at bottom-right corner (no margin)
+  // Position as full-height right sidebar
   try {
-    const bounds = win.getBounds();
     const disp = screen.getPrimaryDisplay();
     const wa = disp.workArea;
-    const x = wa.x + wa.width - bounds.width;
-    const y = wa.y + wa.height - bounds.height;
-    win.setPosition(x, y);
+    const x = Math.round(wa.x + wa.width - SIDEBAR_WIDTH);
+    const y = Math.round(wa.y);
+    const h = Math.round(wa.height);
+    win.setBounds({ x, y, width: SIDEBAR_WIDTH, height: h });
   } catch (e) {
     // ignore if screen APIs not available
   }
@@ -305,12 +343,9 @@ app.whenReady().then(async () => {
       getRemovableDrives: getRemovableDrives,
       moveFileToRemovable: moveFileToRemovable,
       copyFileToRemovable: copyFileToRemovable,
-      // Notion handlers
+      // Notion handlers (read-only: query and schema only)
       notionQueryDatabase: (filters) => notionManager.queryDatabase(filters),
-      notionGetSchema: () => notionManager.getDatabaseSchema(),
-      notionCreatePage: (props) => notionManager.createPage(props),
-      notionUpdatePage: (id, props) => notionManager.updatePage(id, props),
-      notionArchivePage: (id) => notionManager.archivePage(id)
+      notionGetSchema: () => notionManager.getDatabaseSchema()
     }
   );
   console.log('Arc task registry initialized');
@@ -326,6 +361,13 @@ app.whenReady().then(async () => {
   if (updateResult.updated) {
     console.log('Memory was updated from GitHub on startup');
   }
+  
+  // Set up memory notification callback to send updates to renderer
+  memoryStore.setNotificationCallback((type, data) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('memory-write', { type, data });
+    }
+  });
   
   createWindow();
   
@@ -350,32 +392,21 @@ app.whenReady().then(async () => {
     }
   }, AUTO_SYNC_INTERVAL);
   
-  // Auto-scheduler: Check and schedule tasks every 2 hours
-  const SCHEDULER_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours
-  
-  // Run initial schedule check after 1 minute (give app time to settle)
-  setTimeout(async () => {
-    if (notionManager.isConfigured()) {
-      console.log('[Scheduler] Running initial auto-schedule check...');
-      await schedulerService.autoSchedule();
-    }
-  }, 60 * 1000);
-  
-  // Then run every 2 hours
-  setInterval(async () => {
-    if (notionManager.isConfigured()) {
-      console.log(`[Auto-scheduler] Running scheduled task placement at ${new Date().toLocaleTimeString()}`);
-      await schedulerService.autoSchedule();
-    }
-  }, SCHEDULER_INTERVAL);
+  // Auto-scheduler disabled: Notion is read-only (query only, no updates)
   
   // Event Notifier: Check for upcoming events and notify user
-  eventNotifier.start((message) => {
-    // Send notification to renderer to show panel and display message
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('show-notification', message);
+  eventNotifier.start(
+    (message) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('show-notification', message);
+      }
+    },
+    (events) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('upcoming-events', events || []);
+      }
     }
-  });
+  );
   
   // Schedule Optimizer: Move tasks to fill gaps when tasks complete early
   scheduleOptimizer.start();
@@ -859,6 +890,12 @@ ipcMain.handle('set-settings', async (event, settings) => {
   }
   
   await writeConfig(storedConfig);
+
+  // Notify main window to apply theme if it changed
+  if (mainWindow && !mainWindow.isDestroyed() && settings && 'theme' in settings) {
+    mainWindow.webContents.send('theme-changed', storedConfig.theme || 'dark');
+  }
+
   return storedConfig;
 });
 
@@ -1057,7 +1094,7 @@ ipcMain.handle('open-history', async () => {
     transparent: false,
     alwaysOnTop: true,
     resizable: false,
-    title: 'LittleBot History',
+    title: 'Arc Notion Sidebar - History',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -1138,27 +1175,245 @@ ipcMain.handle('notion-get-schema', async () => {
   }
 });
 
-ipcMain.handle('notion-create-page', async (event, properties) => {
-  try {
-    if (!notionManager.isConfigured()) {
-      return { error: 'Notion not configured' };
-    }
-    const page = await notionManager.createPage(properties);
-    return { success: true, page };
-  } catch (err) {
-    return { error: err.message };
-  }
-});
+function getNextBusinessDay() {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (now.getHours() >= 17) d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d;
+}
 
-ipcMain.handle('notion-update-page', async (event, pageId, properties) => {
+function formatDateISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+ipcMain.handle('get-upcoming-schedule', async () => {
   try {
     if (!notionManager.isConfigured()) {
-      return { error: 'Notion not configured' };
+      return { error: 'Notion not configured', date: null, dateLabel: '', meetings: [], tasks: [], projects: [] };
     }
-    const page = await notionManager.updatePage(pageId, properties);
-    return { success: true, page };
+    const schema = await notionManager.getDatabaseSchema();
+    const dateProp = schema.properties.find(p => p.type === 'date');
+    const titleProp = schema.properties.find(p => p.type === 'title');
+    const typeProp = schema.properties.find(p => (p.type === 'select' || p.type === 'status') && typeof p.name === 'string' && (p.name === 'Type' || p.name.toLowerCase().includes('type')));
+    const statusProp = schema.properties.find(p => p.type === 'status' && typeof p.name === 'string' && (p.name === 'Status' || p.name.toLowerCase().includes('status')));
+    const projectRefProp = schema.properties.find(p => {
+      if (typeof p.name !== 'string') return false;
+      const nameMatch = p.name === 'project_ref' || p.name === 'Project' || p.name.toLowerCase().replace(/\s+/g, '_').includes('project');
+      return nameMatch && (p.type === 'relation' || p.type === 'select' || p.type === 'multi_select');
+    });
+    const meetingRefProp = schema.properties.find(p => {
+      if (typeof p.name !== 'string') return false;
+      const n = p.name.toLowerCase().replace(/\s+/g, ' ');
+      const nameMatch = n.includes('meeting') || n.includes('action item') || n === 'parent' || n === 'related meeting';
+      return nameMatch && (p.type === 'relation' || p.type === 'select' || p.type === 'multi_select');
+    });
+    if (!dateProp || !titleProp) {
+      return { error: 'Database missing Date or Title property', date: null, dateLabel: '', meetings: [], tasks: [], projects: [] };
+    }
+    const targetDate = getNextBusinessDay();
+    const isoDate = formatDateISO(targetDate);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const isoNext = formatDateISO(nextDay);
+    const dateLabel = targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    const statusPropName = statusProp ? statusProp.name : 'Status';
+    const baseFilter = {
+      and: [
+        { property: dateProp.name, date: { on_or_after: isoDate } },
+        { property: dateProp.name, date: { before: isoNext } },
+        { property: statusPropName, status: { does_not_equal: 'Processed' } },
+        { property: statusPropName, status: { does_not_equal: 'Resolved' } },
+        { property: statusPropName, status: { does_not_equal: 'Not Started' } }
+      ]
+    };
+    const results = await notionManager.queryDatabase(baseFilter);
+    const meetings = [];
+    const tasks = [];
+    const typePropName = typeProp ? typeProp.name : 'Type';
+    for (const item of results) {
+      const title = item.properties[titleProp.name] || 'Untitled';
+      const typeRaw = item.properties[typePropName] || '';
+      const type = (typeof typeRaw === 'string' ? typeRaw : (typeRaw?.name ?? '')).trim();
+      const typeLower = type.toLowerCase();
+      const dateVal = item.properties[dateProp.name];
+      const sortKey = (dateVal && dateVal.start) || '';
+      let timeStr = '';
+      if (dateVal && dateVal.start && dateVal.start.includes('T')) {
+        try {
+          const t = new Date(dateVal.start);
+          timeStr = t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        } catch (_) {}
+      }
+      if (typeLower === 'meeting') {
+        meetings.push({ id: item.id, title, time: timeStr, _sort: sortKey });
+      } else if (typeLower === 'task') {
+        tasks.push({ id: item.id, title, time: timeStr, _sort: sortKey });
+      }
+    }
+    meetings.sort((a, b) => (a._sort || '').localeCompare(b._sort || ''));
+    tasks.sort((a, b) => (a._sort || '').localeCompare(b._sort || ''));
+    const stripSort = (arr) => arr.map(({ id, title, time }) => (id ? { id, title, time } : { title, time }));
+    const tasksOut = stripSort(tasks);
+    const taskTypeFilter = typeProp
+      ? (typeProp.type === 'status'
+          ? { property: typePropName, status: { equals: 'Task' } }
+          : { property: typePropName, select: { equals: 'Task' } })
+      : { property: typePropName, select: { equals: 'Task' } };
+    const recentStart = new Date(targetDate);
+    recentStart.setDate(recentStart.getDate() - 30);
+    const recentStartISO = formatDateISO(recentStart);
+    const recentSorts = [{ property: dateProp.name, direction: 'descending' }];
+
+    function mapItemsToActionItems(items) {
+      return items
+        .map(item => {
+          const t = item.properties[titleProp.name] || 'Untitled';
+          const dv = item.properties[dateProp.name];
+          let ts = '';
+          let sortKey = '';
+          if (dv && dv.start) {
+            sortKey = dv.start;
+            if (dv.start.includes('T')) {
+              try { ts = new Date(dv.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch (_) {}
+            } else {
+              try { ts = new Date(dv.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (_) {}
+            }
+          }
+          return { title: t, time: ts, _sort: sortKey || 'z' };
+        })
+        .sort((a, b) => (b._sort || '').localeCompare(a._sort || ''))
+        .slice(0, 3)
+        .map(({ title, time }) => ({ title, time }));
+    }
+
+    const meetingsOut = [];
+    for (const m of meetings) {
+      const entry = { id: m.id, title: m.title, time: m.time };
+      entry.actionItems = [];
+      if (meetingRefProp && m.id) {
+        if (meetingRefProp.type === 'relation') {
+          const filter = {
+            and: [
+              taskTypeFilter,
+              { property: meetingRefProp.name, relation: { contains: m.id } },
+              { property: dateProp.name, date: { on_or_after: recentStartISO } }
+            ]
+          };
+          const raw = await notionManager.queryDatabase(filter, recentSorts);
+          entry.actionItems = mapItemsToActionItems(raw);
+        } else if ((meetingRefProp.type === 'select' || meetingRefProp.type === 'multi_select') && Array.isArray(meetingRefProp.options)) {
+          const optStr = (o) => (o && (o.name != null ? o.name : o)).toString().toLowerCase();
+          const matchOpt = (meetingRefProp.options || []).find(o => optStr(o) === (m.title || '').toLowerCase());
+          const optName = matchOpt ? (matchOpt.name != null ? matchOpt.name : matchOpt) : m.title;
+          const refFilter = meetingRefProp.type === 'multi_select'
+            ? { property: meetingRefProp.name, multi_select: { contains: optName } }
+            : { property: meetingRefProp.name, select: { equals: optName } };
+          const filter = {
+            and: [
+              taskTypeFilter,
+              refFilter,
+              { property: dateProp.name, date: { on_or_after: recentStartISO } }
+            ]
+          };
+          const raw = await notionManager.queryDatabase(filter, recentSorts);
+          entry.actionItems = mapItemsToActionItems(raw);
+        }
+      }
+      meetingsOut.push(entry);
+    }
+
+    const projectItems = [];
+    const projectTypeFilter = typeProp
+      ? (typeProp.type === 'status'
+          ? { property: typePropName, status: { equals: 'Project' } }
+          : { property: typePropName, select: { equals: 'Project' } })
+      : { property: typePropName, select: { equals: 'Project' } };
+    let allProjectRows = await notionManager.queryDatabase({ and: [projectTypeFilter] });
+    if (allProjectRows.length === 0 && (!typeProp || typeProp.type === 'select')) {
+      const projectTypeFilterLower = { property: typePropName, select: { equals: 'project' } };
+      allProjectRows = await notionManager.queryDatabase({ and: [projectTypeFilterLower] });
+    }
+    for (const item of allProjectRows) {
+      const title = item.properties[titleProp.name] || 'Untitled';
+      projectItems.push({ id: item.id, title });
+    }
+    const projects = [];
+
+    function mapItemsToTasks(items) {
+      return items
+        .map(item => {
+          const t = item.properties[titleProp.name] || 'Untitled';
+          const dv = item.properties[dateProp.name];
+          let ts = '';
+          let sortKey = '';
+          if (dv && dv.start) {
+            sortKey = dv.start;
+            if (dv.start.includes('T')) {
+              try { ts = new Date(dv.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch (_) {}
+            } else {
+              try { ts = new Date(dv.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (_) {}
+            }
+          }
+          return { title: t, time: ts, _sort: sortKey || 'z' };
+        })
+        .sort((a, b) => (b._sort || '').localeCompare(a._sort || ''))
+        .slice(0, 3)
+        .map(({ title, time }) => ({ title, time }));
+    }
+
+    const projectRefExclude = new Set(['Knowledge Vault', "1:1's with Bruce", '1:1 with Bruce', 'Tech Services']);
+    if (projectRefProp && projectRefProp.type === 'relation') {
+      for (const proj of projectItems) {
+        const projectFilter = {
+          and: [
+            taskTypeFilter,
+            { property: projectRefProp.name, relation: { contains: proj.id } },
+            { property: dateProp.name, date: { on_or_after: recentStartISO } }
+          ]
+        };
+        const projectTasksRaw = await notionManager.queryDatabase(projectFilter, recentSorts);
+        projects.push({ title: proj.title, tasks: mapItemsToTasks(projectTasksRaw) });
+      }
+    } else if (projectRefProp && (projectRefProp.type === 'select' || projectRefProp.type === 'multi_select') && Array.isArray(projectRefProp.options) && projectRefProp.options.length > 0) {
+      const refFilter = projectRefProp.type === 'multi_select'
+        ? (value) => ({ property: projectRefProp.name, multi_select: { contains: value } })
+        : (value) => ({ property: projectRefProp.name, select: { equals: value } });
+      const titleLower = (s) => (s || '').toLowerCase();
+      for (const proj of projectItems) {
+        const projTitleLower = titleLower(proj.title);
+        const matchingOptions = (projectRefProp.options || []).filter(
+          (opt) => !projectRefExclude.has(opt) && projTitleLower.includes(titleLower(opt))
+        );
+        let projectTasks = [];
+        if (matchingOptions.length > 0) {
+          const orFilters = matchingOptions.map((opt) => refFilter(opt));
+          const projectFilter = {
+            and: [
+              taskTypeFilter,
+              { or: orFilters },
+              { property: dateProp.name, date: { on_or_after: recentStartISO } }
+            ]
+          };
+          const projectTasksRaw = await notionManager.queryDatabase(projectFilter, recentSorts);
+          projectTasks = mapItemsToTasks(projectTasksRaw);
+        }
+        projects.push({ title: proj.title, tasks: projectTasks });
+      }
+    } else {
+      for (const proj of projectItems) {
+        projects.push({ title: proj.title, tasks: [] });
+      }
+    }
+    return { date: isoDate, dateLabel, meetings: meetingsOut, tasks: tasksOut, projects, error: null };
   } catch (err) {
-    return { error: err.message };
+    const isNetworkError = /fetch failed|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|network/i.test(err.message || '');
+    const detail = isNetworkError ? 'Network unreachable. Use ↻ to retry.' : err.message;
+    sendArcDebug({ type: 'error', message: 'Schedule fetch failed', detail });
+    return { error: err.message, date: null, dateLabel: '', meetings: [], tasks: [], projects: [] };
   }
 });
 
@@ -1558,7 +1813,7 @@ ipcMain.on('assistant-message', (event, data) => {
       
       const endpoint = 'https://api.anthropic.com/v1/messages';
 
-      // Use smart context builder to get only relevant memories
+      sendArcDebug('Building context...');
       console.log('🔍 Building intelligent context...');
       const contextData = await contextBuilder.buildContext(input, history);
       const memoryContext = contextBuilder.formatSystemContext(contextData);
@@ -1586,12 +1841,20 @@ Note: You can see your current version and all changes made to your program. If 
 
       console.log('📋 Assembling final context...');
       
+      // Get core identity facts for immediate access (Tier 1 - System Prompt Injection)
+      const coreIdentity = await memoryStore.getCoreIdentityFacts();
+      let coreIdentityContext = '';
+      if (coreIdentity.length > 0) {
+        coreIdentityContext = `\n\n🔑 CORE IDENTITY (Immediate Access):\n${coreIdentity.map(f => `• ${f.text}`).join('\n')}`;
+      }
+      
       // Build system prompt from loaded file plus dynamic context
       const system = `${systemPrompt}
 
-Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versionContext}`;
+Current system time: ${currentTime}${coreIdentityContext}${memoryContext}${memoryTimestampInfo}${versionContext}`;
 
       console.log('   - Base prompt length:', systemPrompt.length, 'chars');
+      console.log('   - Core identity facts:', coreIdentity.length);
       console.log('   - Memory context length:', memoryContext.length, 'chars');
       console.log('   - TOTAL context length:', system.length, 'chars');
       console.log('   - Context reduction:', contextData.stats.totalFacts - (contextData.stats.coreFacts + contextData.stats.relevantFacts), 'facts filtered out');
@@ -1612,11 +1875,9 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
         console.log('   Processed:', processedInput);
         console.log('   Notion configured: YES');
         
-        // Pattern: schedule my tasks / auto-schedule tasks
+        // Pattern: schedule my tasks / auto-schedule (read-only: Notion cannot be updated)
         if (/schedule\s+(my\s+)?tasks|auto.?schedule/i.test(processedInput)) {
-          console.log('   ✅ MATCHED SCHEDULE TASKS COMMAND!');
-          const result = await schedulerService.autoSchedule();
-          return result.message || 'Scheduling complete';
+          return 'Notion is read-only. I can only view your schedule, not auto-place or move tasks.';
         }
         
         // Pattern: move [item] to [time] [optional: today/tomorrow]
@@ -1690,12 +1951,14 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
         console.log('🔍 Notion NOT configured - skipping direct commands');
       }
       
+      sendArcDebug('Sending to Anthropic API...');
       console.log('📡 Sending to Anthropic API...\n');
       
       // Build conversation messages from history + current input
       const messages = [];
       
       // Add previous conversation (limit to last 20 messages to keep context manageable)
+      // History from renderer is newest-first; API expects oldest-first for correct context
       const recentHistory = history.slice(-20);
       recentHistory.forEach(msg => {
         if (msg.role && msg.content) {
@@ -1705,7 +1968,7 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
           });
         }
       });
-      
+      messages.reverse();
       // Add current message
       messages.push({ role: 'user', content: input });
       
@@ -1739,18 +2002,21 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
         });
       } catch (e) {
         console.error('Network error calling Anthropic', e);
+        sendArcDebug({ type: 'error', message: 'Network error', detail: e.message });
         return `Network error: ${e.message}`;
       }
 
       if (!res.ok) {
         const txt = await res.text().catch(() => '');
         console.error('Anthropic error', res.status, txt);
+        sendArcDebug({ type: 'error', message: `HTTP ${res.status}`, detail: txt.slice(0, 200) });
         if (process.env.LITTLEBOT_DEBUG === '1') {
           return `Anthropic error ${res.status}: ${txt}`;
         }
         return `Sorry, I couldn't reach the AI (status ${res.status}).`;
       }
 
+      sendArcDebug({ type: 'status', message: '200', detail: modelToUse });
       const data = await res.json();
       
       // Check if Claude wants to use tools
@@ -2005,21 +2271,35 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
       return completion;
     } catch (err) {
       console.error('Anthropic request failed', err);
+      sendArcDebug({ type: 'error', message: 'Request failed', detail: err.message });
       return `Error contacting AI: ${err.message}`;
     }
   }
 
   (async () => {
-    // Inform renderer that we're processing (optional)
     event.sender.send('assistant-reply', 'Thinking...');
+    sendArcDebug('User message received');
+
+    const lowerText = text.toLowerCase();
+    const clearMemoryTriggers = [
+      /\b(delete|clear|remove|erase|wipe)\s+(?:that|your?\s?memory|memory|it)\b/i,
+      /\b(delete|clear|remove|erase)\s+(?:that\s+)?(?:from\s+)?(?:your?\s?)?memory\b/i,
+      /\bclear\s+(?:your?\s?)?memory\b/i,
+      /\bforget\s+(?:that|it|everything)\b/i,
+      /\b(?:you\s+)?need\s+to\s+delete\s+that\b/i,
+      /\bdon'?t\s+(?:use\s+)?(?:your?\s?)?memory\b/i
+    ];
+    const shouldClearMemory = clearMemoryTriggers.some(r => r.test(text));
+    if (shouldClearMemory) {
+      await memoryStore.clearAll();
+      console.log('Memory cleared per user request');
+    }
 
     let reply;
     if (anthropicKey) {
       reply = await callAnthropic(text, conversationHistory);
       
       // Check for explicit memory commands (expanded patterns for natural language)
-      const lowerText = text.toLowerCase();
-      
       // More flexible memory save triggers
       const memoryTriggers = [
         /remember (?:that )?(.+)/i,
@@ -2073,6 +2353,8 @@ Current system time: ${currentTime}${memoryContext}${memoryTimestampInfo}${versi
       reply = await fallbackReply(text);
     }
 
+    sendArcDebug('Reply sent');
+    reply = stripItalicizedActions(reply);
     event.sender.send('assistant-reply', reply);
   })();
 });
@@ -2162,7 +2444,7 @@ If nothing significant to learn, return empty arrays and null summary.`;
     if (learnings.facts && learnings.facts.length > 0) {
       for (const fact of learnings.facts) {
         await memoryStore.addFact(fact, 'user');
-        console.log('Learned fact:', fact);
+        console.log('📝 MEMORY WRITE [FACT]:', fact);
       }
     }
     
@@ -2170,12 +2452,12 @@ If nothing significant to learn, return empty arrays and null summary.`;
     if (learnings.topics && learnings.topics.length > 0) {
       for (const topicData of learnings.topics) {
         await memoryStore.addTopicKnowledge(topicData.topic, topicData.knowledge);
-        console.log('Learned about topic:', topicData.topic);
+        console.log('📚 MEMORY WRITE [TOPIC]:', topicData.topic, '-', topicData.knowledge);
         
         // Notify renderer to add particle
         if (mainWindow && !mainWindow.isDestroyed()) {
           const allTopics = await memoryStore.getAllTopics();
-          const topicCount = allTopics.length;
+          const topicCount = Object.keys(allTopics).length;
           mainWindow.webContents.send('topic-learned', { topic: topicData.topic, totalTopics: topicCount });
         }
       }

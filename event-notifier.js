@@ -11,9 +11,9 @@ class EventNotifier {
   /**
    * Start the event notifier service
    */
-  start(sendNotificationCallback) {
+  start(sendNotificationCallback, sendStructuredCallback) {
     this.sendNotification = sendNotificationCallback;
-    
+    this.sendNotificationStructured = sendStructuredCallback || null;
     // Initial check after 30 seconds
     setTimeout(() => this.checkUpcomingEvents(), 30 * 1000);
     
@@ -72,9 +72,11 @@ class EventNotifier {
       });
 
       const now = new Date();
-      const upcomingEvents = [];
+      const upcomingEvents = []; // For Slack / one-time notification
+      const highlightEventsMap = new Map(); // id -> event (upcoming OR in progress, for schedule highlight)
 
-      // Check each item for upcoming events
+      const titleProp = schema.properties.find(p => p.type === 'title');
+
       for (const item of items) {
         const dateValue = item.properties[dateProp.name];
         if (!dateValue || !dateValue.start || !dateValue.start.includes('T')) {
@@ -82,33 +84,47 @@ class EventNotifier {
         }
 
         const eventStart = new Date(dateValue.start);
+        const eventEnd = (dateValue.end && String(dateValue.end).includes('T'))
+          ? new Date(dateValue.end)
+          : new Date(eventStart.getTime() + 60 * 60 * 1000); // default 1 hr if no end
         const minutesUntil = (eventStart - now) / (1000 * 60);
+        const inProgress = now >= eventStart && now <= eventEnd;
+        const upcoming = minutesUntil > 0 && minutesUntil <= this.notificationWindow;
+        const eventId = item.id;
+        const title = item.properties[titleProp.name] || 'Untitled';
+        const type = item.properties['Type'] || 'Event';
 
-        // Check if event is within notification window and not yet notified
-        if (minutesUntil > 0 && minutesUntil <= this.notificationWindow) {
-          const eventId = item.id;
-          
-          if (!this.notifiedEvents.has(eventId)) {
-            const titleProp = schema.properties.find(p => p.type === 'title');
-            const title = item.properties[titleProp.name] || 'Untitled';
-            const type = item.properties['Type'] || 'Event';
-            
-            upcomingEvents.push({
-              id: eventId,
-              title,
-              type,
-              startTime: eventStart,
-              minutesUntil: Math.round(minutesUntil)
-            });
-            
-            this.notifiedEvents.add(eventId);
-          }
+        if (upcoming && !this.notifiedEvents.has(eventId)) {
+          upcomingEvents.push({
+            id: eventId,
+            title,
+            type,
+            startTime: eventStart,
+            minutesUntil: Math.round(minutesUntil)
+          });
+          this.notifiedEvents.add(eventId);
+        }
+
+        if (upcoming || inProgress) {
+          const minutesUntilDisplay = inProgress ? 0 : Math.round(minutesUntil);
+          highlightEventsMap.set(eventId, {
+            id: eventId,
+            title,
+            type,
+            startTime: eventStart,
+            endTime: eventEnd,
+            minutesUntil: minutesUntilDisplay,
+            inProgress
+          });
         }
       }
 
-      // Send notifications for upcoming events
-      if (upcomingEvents.length > 0) {
-        await this.notifyUpcomingEvents(upcomingEvents);
+      const highlightEvents = Array.from(highlightEventsMap.values());
+      if (highlightEvents.length > 0) {
+        highlightEvents.forEach(e => { e.timeStr = this.formatTime(e.startTime); });
+        await this.notifyUpcomingEvents(upcomingEvents, highlightEvents);
+      } else if (this.sendNotificationStructured) {
+        this.sendNotificationStructured([]);
       }
 
       // Clean up old notified events (older than 2 hours)
@@ -120,40 +136,34 @@ class EventNotifier {
   }
 
   /**
-   * Send notification about upcoming events
+   * Send notification about upcoming events; highlight list includes both upcoming and in-progress.
+   * @param {Array} upcomingEvents - Events within the notification window (for Slack / one-time notify)
+   * @param {Array} highlightEvents - Events to highlight on schedule (upcoming + currently in progress)
    */
-  async notifyUpcomingEvents(events) {
-    console.log(`[Event Notifier] Found ${events.length} upcoming event(s)`);
-    
-    let message = '';
-    
-    if (events.length === 1) {
-      const event = events[0];
-      const timeStr = this.formatTime(event.startTime);
-      message = `⏰ **Upcoming ${event.type}**\n\n` +
-                `**${event.title}** is starting in ${event.minutesUntil} minute${event.minutesUntil !== 1 ? 's' : ''} at ${timeStr}`;
-    } else {
-      message = `⏰ **You have ${events.length} upcoming events:**\n\n`;
-      events.forEach(event => {
-        const timeStr = this.formatTime(event.startTime);
-        message += `• **${event.title}** - ${event.minutesUntil} min (${timeStr})\n`;
-      });
+  async notifyUpcomingEvents(upcomingEvents, highlightEvents) {
+    const toHighlight = highlightEvents || upcomingEvents || [];
+    console.log(`[Event Notifier] ${toHighlight.length} event(s) to highlight (${upcomingEvents.length} upcoming)`);
+
+    if (this.sendNotificationStructured) {
+      this.sendNotificationStructured(toHighlight.map(e => ({
+        id: e.id,
+        type: e.type,
+        title: e.title,
+        minutesUntil: e.minutesUntil,
+        timeStr: e.timeStr || this.formatTime(e.startTime),
+        inProgress: !!e.inProgress
+      })));
     }
 
-    // Send notification via callback
-    if (this.sendNotification) {
-      this.sendNotification(message);
-    }
-    
-    // Post to Slack if configured
-    if (slackService.isConfigured()) {
-      if (events.length === 1) {
-        const event = events[0];
+    // Post to Slack only for newly upcoming (not for in-progress)
+    if (slackService.isConfigured() && upcomingEvents.length > 0) {
+      if (upcomingEvents.length === 1) {
+        const event = upcomingEvents[0];
         const timeStr = this.formatTime(event.startTime);
         const slackMessage = `*Upcoming ${event.type}*\n\n*${event.title}* is starting in ${event.minutesUntil} minute${event.minutesUntil !== 1 ? 's' : ''} at ${timeStr}`;
         await slackService.postMessage(slackMessage);
       } else {
-        const slackMessage = `*You have ${events.length} upcoming events:*\n\n${events.map(e => {
+        const slackMessage = `*You have ${upcomingEvents.length} upcoming events:*\n\n${upcomingEvents.map(e => {
           const timeStr = this.formatTime(e.startTime);
           return `• *${e.title}* - ${e.minutesUntil} min (${timeStr})`;
         }).join('\n')}`;

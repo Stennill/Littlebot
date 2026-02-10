@@ -27,9 +27,9 @@ class NotionManager {
   }
 
   /**
-   * Make a request to Notion API
+   * Make a request to Notion API (with one retry on network failure)
    */
-  async makeRequest(endpoint, method = 'GET', body = null) {
+  async makeRequest(endpoint, method = 'GET', body = null, retried = false) {
     if (!this.apiKey) {
       throw new Error('Notion API key not configured');
     }
@@ -49,14 +49,21 @@ class NotionManager {
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, options);
-    
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Notion API error: ${response.status} - ${error}`);
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, options);
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Notion API error: ${response.status} - ${error}`);
+      }
+      return await response.json();
+    } catch (err) {
+      const isNetworkError = /fetch failed|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|network/i.test(err.message || '');
+      if (isNetworkError && !retried) {
+        await new Promise(r => setTimeout(r, 2000));
+        return this.makeRequest(endpoint, method, body, true);
+      }
+      throw err;
     }
-
-    return await response.json();
   }
 
   /**
@@ -125,34 +132,17 @@ class NotionManager {
   }
 
   /**
-   * Create a new page in database
+   * Create a new page in database (DISABLED - read-only mode)
    */
   async createPage(properties) {
-    if (!this.databaseId) {
-      throw new Error('Notion database ID not configured');
-    }
-
-    const body = {
-      parent: {
-        database_id: this.databaseId
-      },
-      properties: this.formatProperties(properties)
-    };
-
-    const data = await this.makeRequest('/pages', 'POST', body);
-    return this.formatPage(data);
+    throw new Error('Notion is configured for read-only access. Create is disabled.');
   }
 
   /**
-   * Update an existing page
+   * Update an existing page (DISABLED - read-only mode)
    */
   async updatePage(pageId, properties) {
-    const body = {
-      properties: this.formatProperties(properties)
-    };
-
-    const data = await this.makeRequest(`/pages/${pageId}`, 'PATCH', body);
-    return this.formatPage(data);
+    throw new Error('Notion is configured for read-only access. Update is disabled.');
   }
 
   /**
@@ -164,15 +154,10 @@ class NotionManager {
   }
 
   /**
-   * Archive/delete a page
+   * Archive/delete a page (DISABLED - read-only mode)
    */
   async archivePage(pageId) {
-    const body = {
-      archived: true
-    };
-
-    const data = await this.makeRequest(`/pages/${pageId}`, 'PATCH', body);
-    return { success: true, pageId: data.id };
+    throw new Error('Notion is configured for read-only access. Archive/delete is disabled.');
   }
 
   /**
@@ -187,11 +172,16 @@ class NotionManager {
     
     return {
       title: data.title[0]?.plain_text || 'Untitled Database',
-      properties: Object.entries(data.properties).map(([name, prop]) => ({
-        name,
-        type: prop.type,
-        id: prop.id
-      }))
+      properties: Object.entries(data.properties).map(([name, prop]) => {
+        const out = { name, type: prop.type, id: prop.id };
+        if (prop.select?.options?.length) {
+          out.options = prop.select.options.map(o => o.name);
+        }
+        if (prop.multi_select?.options?.length) {
+          out.options = prop.multi_select.options.map(o => o.name);
+        }
+        return out;
+      })
     };
   }
 
@@ -283,6 +273,8 @@ class NotionManager {
         return prop.phone_number;
       case 'status':
         return prop.status?.name || null;
+      case 'relation':
+        return (prop.relation || []).map(r => r.id);
       default:
         return null;
     }

@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ,openHistory: () => ipcRenderer.invoke('open-history')
   ,openExternal: (url) => ipcRenderer.invoke('open-external', url)
   ,openSettings: () => ipcRenderer.invoke('open-settings')
+  ,onThemeChanged: (cb) => ipcRenderer.on('theme-changed', (event, theme) => cb(theme))
   ,startWindowsSpeech: () => ipcRenderer.invoke('start-windows-speech')
   ,stopWindowsSpeech: () => ipcRenderer.invoke('stop-windows-speech')
   ,onSpeechResult: (cb) => ipcRenderer.on('speech-result', (event, data) => cb(data))
@@ -48,4 +49,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ,onTopicLearned: (cb) => ipcRenderer.on('topic-learned', (event, data) => cb(data))
   // Event notifications
   ,onNotification: (cb) => ipcRenderer.on('show-notification', (event, message) => cb(message))
+  ,onUpcomingEvents: (cb) => ipcRenderer.on('upcoming-events', (event, events) => cb(events))
+  // Memory write notifications
+  ,onMemoryWrite: (cb) => ipcRenderer.on('memory-write', (event, data) => cb(data))
+  // Debug panel (sidebar)
+  ,onArcDebug: (cb) => ipcRenderer.on('arc-debug', (event, data) => cb(data))
+  // Upcoming schedule for sidebar
+  ,getUpcomingSchedule: () => ipcRenderer.invoke('get-upcoming-schedule')
+  ,onScheduleRefresh: (cb) => ipcRenderer.on('schedule-refresh', () => cb())
 });

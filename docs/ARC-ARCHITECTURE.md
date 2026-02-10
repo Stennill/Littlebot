@@ -221,7 +221,7 @@ const tools = [
 ### AFTER (Clean Separation)
 **arc-persona.txt:**
 ```
-You are Arc, witty AI assistant with JARVIS-like personality.
+You are Arc, witty AI assistant.
 
 [Pure personality definition]
 [Behavior guidelines]

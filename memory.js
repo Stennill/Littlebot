@@ -17,6 +17,14 @@ class MemoryStore {
       lastUpdated: null // Timestamp of last memory update
     };
     this.loaded = false;
+    this.notificationCallback = null; // Callback for memory write notifications
+  }
+
+  /**
+   * Set callback for memory write notifications
+   */
+  setNotificationCallback(callback) {
+    this.notificationCallback = callback;
   }
 
   async load() {
@@ -66,6 +74,12 @@ class MemoryStore {
     // No limit - allow unlimited fact accumulation
     
     await this.save();
+    
+    // Emit event for UI notification
+    if (this.notificationCallback) {
+      this.notificationCallback('fact', entry);
+    }
+    
     return entry;
   }
 
@@ -85,16 +99,23 @@ class MemoryStore {
       };
     }
     
-    this.memories.topics[topicKey].entries.push({
+    const entry = {
       text: knowledge,
       timestamp: Date.now()
-    });
+    };
+    
+    this.memories.topics[topicKey].entries.push(entry);
     
     this.memories.topics[topicKey].lastAccessed = Date.now();
     
     // No limit - allow unlimited topic entries
     
     await this.save();
+    
+    // Emit event for UI notification
+    if (this.notificationCallback) {
+      this.notificationCallback('topic', { topic, knowledge: entry.text });
+    }
   }
 
   /**
@@ -186,6 +207,33 @@ class MemoryStore {
   async getAllTopics() {
     if (!this.loaded) await this.load();
     return this.memories.topics;
+  }
+
+  /**
+   * Get core identity facts for system prompt injection
+   */
+  async getCoreIdentityFacts() {
+    if (!this.loaded) await this.load();
+    
+    const coreKeywords = [
+      'name', 'stephen', 'tennill', 'sir',
+      'littlebot', 'arc', 'building',
+      'developer', 'generalist', 'day job'
+    ];
+
+    return this.memories.facts.filter(fact => {
+      const text = fact.text.toLowerCase();
+      return coreKeywords.some(kw => text.includes(kw)) ||
+             fact.category === 'identity' ||
+             fact.category === 'user';
+    }).slice(0, 10); // Max 10 core facts for system prompt
+  }
+
+  /**
+   * Get raw memory object (for internal use)
+   */
+  getMemory() {
+    return this.memories;
   }
 
   /**
