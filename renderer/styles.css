@@ -137,6 +137,20 @@ html, body {
   margin-bottom: 0;
 }
 
+/* Divider between Meetings and Tasks (same as Tasks/Projects divider) */
+#schedule-meetings-wrap {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(175, 175, 175, 0.08);
+}
+body.theme-light #schedule-meetings-wrap {
+  border-bottom-color: rgba(206, 206, 206, 0.08);
+}
+#schedule-tasks-wrap {
+  padding-top: 0;
+  margin-top: 0;
+}
+
 /* Projects: own section, visually distinct from Tasks */
 #schedule-projects-section.schedule-block-projects {
   margin-top: 12px;
