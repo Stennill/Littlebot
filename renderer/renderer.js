@@ -117,13 +117,13 @@ async function loadUpcomingSchedule() {
     } else {
       scheduleMeetingsEl.innerHTML = meetingsList.map(m => {
         const actionItems = m.actionItems || [];
-        const actionListHtml = actionItems.length === 0
-          ? ''
-          : `<ul class="schedule-meeting-action-items">${actionItems.map(a => `<li>${escapeHtml(a.title)}</li>`).join('')}</ul>`;
-        return `<div class="schedule-meeting-group"${m.id ? ` data-id="${escapeHtml(m.id)}"` : ''}><div class="schedule-meeting-title">${m.time ? `<span class="schedule-time">${m.time}</span>` : ''}${escapeHtml(m.title)}</div>${actionListHtml}</div>`;
+        const actionList = actionItems.length === 0
+          ? '<li class="schedule-none">None</li>'
+          : actionItems.map(a => `<li>${a.time ? `<span class="schedule-time">${a.time}</span>` : ''}${escapeHtml(a.title)}</li>`).join('');
+        return `<div class="schedule-meeting-group"${m.id ? ` data-id="${escapeHtml(m.id)}"` : ''}><div class="schedule-meeting-title">${m.time ? `<span class="schedule-time">${m.time}</span>` : ''}${escapeHtml(m.title)}</div><ul class="schedule-meeting-action-items">${actionList}</ul></div>`;
       }).join('');
     }
-    scheduleTasksEl.innerHTML = (data.tasks || []).map(t => `<li${t.id ? ` data-id="${escapeHtml(t.id)}"` : ''}>${escapeHtml(t.title)}</li>`).join('') || '<li class="schedule-none">None</li>';
+    scheduleTasksEl.innerHTML = (data.tasks || []).map(t => `<li${t.id ? ` data-id="${escapeHtml(t.id)}"` : ''}>${t.time ? `<span class="schedule-time">${t.time}</span>` : ''}${escapeHtml(t.title)}</li>`).join('') || '<li class="schedule-none">None</li>';
     if (scheduleProjectsEl && scheduleProjectsSection) {
       const projects = data.projects || [];
       scheduleProjectsSection.classList.remove('hidden');
@@ -131,11 +131,8 @@ async function loadUpcomingSchedule() {
         scheduleProjectsEl.innerHTML = '<div class="schedule-project-none">None</div>';
       } else {
         scheduleProjectsEl.innerHTML = projects.map(p => {
-          const tasks = p.tasks || [];
-          const taskListHtml = tasks.length === 0
-            ? ''
-            : `<ul class="schedule-project-tasks">${tasks.map(t => `<li>${escapeHtml(t.title)}</li>`).join('')}</ul>`;
-          return `<div class="schedule-project-group"><div class="schedule-project-title">${escapeHtml(p.title)}</div>${taskListHtml}</div>`;
+          const taskList = (p.tasks || []).map(t => `<li>${escapeHtml(t.title)}</li>`).join('') || '<li class="schedule-none">None</li>';
+          return `<div class="schedule-project-group"><div class="schedule-project-title">${escapeHtml(p.title)}</div><ul class="schedule-project-tasks">${taskList}</ul></div>`;
         }).join('');
       }
     }

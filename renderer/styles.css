@@ -170,22 +170,6 @@ html, body {
   width: 100%;
   height: 100%;
 }
-#schedule-meetings-wrap {
-  padding-bottom: 15px;
-  margin-top: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-body.theme-light #schedule-meetings-wrap {
-  border-bottom-color: rgba(206, 206, 206, 0.12);
-}
-#schedule-tasks-wrap {
-  padding-top: 5px;
-  margin-bottom: 15px;
-  margin-top: 0;
-}
-body.theme-light #schedule-tasks-wrap {
-  border: none;
-}
 #schedule-tasks-wrap .schedule-icon {
   color: rgba(160, 200, 140, 0.9);
 }

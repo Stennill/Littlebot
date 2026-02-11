@@ -1207,15 +1207,10 @@ ipcMain.handle('get-upcoming-schedule', async () => {
     });
     const meetingRefProp = schema.properties.find(p => {
       if (typeof p.name !== 'string') return false;
-      const n = p.name.toLowerCase().replace(/\s+/g, ' ').trim();
-      const nameMatch = n.includes('meeting') || n.includes('action item') || n === 'parent' || n.includes('related meeting') || n.includes('related inbox') || n.includes('inbox') || (p.type === 'relation' && n.includes('related'));
+      const n = p.name.toLowerCase().replace(/\s+/g, ' ');
+      const nameMatch = n.includes('meeting') || n.includes('action item') || n === 'parent' || n === 'related meeting';
       return nameMatch && (p.type === 'relation' || p.type === 'select' || p.type === 'multi_select');
     });
-    if (meetingRefProp) {
-      sendArcDebug({ type: 'status', message: 'Meeting action items', detail: `Using property "${meetingRefProp.name}" (${meetingRefProp.type})` });
-    } else {
-      sendArcDebug({ type: 'status', message: 'Meeting action items', detail: 'No relation property found (look for Related Inbox, Meeting, or Action Item For)' });
-    }
     if (!dateProp || !titleProp) {
       return { error: 'Database missing Date or Title property', date: null, dateLabel: '', meetings: [], tasks: [], projects: [] };
     }
@@ -1290,7 +1285,7 @@ ipcMain.handle('get-upcoming-schedule', async () => {
           }
           return { title: t, time: ts, _sort: sortKey || 'z' };
         })
-        .sort((a, b) => (a._sort || 'z').localeCompare(b._sort || 'z'))
+        .sort((a, b) => (b._sort || '').localeCompare(a._sort || ''))
         .slice(0, 3)
         .map(({ title, time }) => ({ title, time }));
     }
@@ -1303,19 +1298,13 @@ ipcMain.handle('get-upcoming-schedule', async () => {
         if (meetingRefProp.type === 'relation') {
           const filter = {
             and: [
-              { property: meetingRefProp.name, relation: { contains: m.id } }
+              taskTypeFilter,
+              { property: meetingRefProp.name, relation: { contains: m.id } },
+              { property: dateProp.name, date: { on_or_after: recentStartISO } }
             ]
           };
-          const raw = await notionManager.queryDatabase(filter, null);
-          const withDate = (item) => {
-            const dv = item.properties[dateProp.name];
-            const start = dv && dv.start;
-            if (!start) return true;
-            return start >= isoDate;
-          };
-          const futureOrToday = raw.filter(withDate);
-          entry.actionItems = mapItemsToActionItems(futureOrToday);
-          if (raw.length > 0) sendArcDebug({ type: 'status', message: 'Meeting action items', detail: `${m.title}: ${raw.length} linked, ${futureOrToday.length} upcoming → ${entry.actionItems.length} shown` });
+          const raw = await notionManager.queryDatabase(filter, recentSorts);
+          entry.actionItems = mapItemsToActionItems(raw);
         } else if ((meetingRefProp.type === 'select' || meetingRefProp.type === 'multi_select') && Array.isArray(meetingRefProp.options)) {
           const optStr = (o) => (o && (o.name != null ? o.name : o)).toString().toLowerCase();
           const matchOpt = (meetingRefProp.options || []).find(o => optStr(o) === (m.title || '').toLowerCase());
@@ -1377,18 +1366,13 @@ ipcMain.handle('get-upcoming-schedule', async () => {
     }
 
     const projectRefExclude = new Set(['Knowledge Vault', "1:1's with Bruce", '1:1 with Bruce', 'Tech Services']);
-    const statusExcludeFilter = [
-      { property: statusPropName, status: { does_not_equal: 'Processed' } },
-      { property: statusPropName, status: { does_not_equal: 'Resolved' } }
-    ];
     if (projectRefProp && projectRefProp.type === 'relation') {
       for (const proj of projectItems) {
         const projectFilter = {
           and: [
             taskTypeFilter,
             { property: projectRefProp.name, relation: { contains: proj.id } },
-            { property: dateProp.name, date: { on_or_after: recentStartISO } },
-            ...statusExcludeFilter
+            { property: dateProp.name, date: { on_or_after: recentStartISO } }
           ]
         };
         const projectTasksRaw = await notionManager.queryDatabase(projectFilter, recentSorts);
@@ -1411,8 +1395,7 @@ ipcMain.handle('get-upcoming-schedule', async () => {
             and: [
               taskTypeFilter,
               { or: orFilters },
-              { property: dateProp.name, date: { on_or_after: recentStartISO } },
-              ...statusExcludeFilter
+              { property: dateProp.name, date: { on_or_after: recentStartISO } }
             ]
           };
           const projectTasksRaw = await notionManager.queryDatabase(projectFilter, recentSorts);
