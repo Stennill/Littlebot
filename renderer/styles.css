@@ -1,19 +1,78 @@
-/* Arc sidebar: full-height right panel */
+/* ========== Design language (designformat.md) ========== */
+:root {
+  /* Base palette: deep neutral, charcoal/graphite */
+  --bg-primary: #1a1d24;
+  --bg-secondary: #22262e;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-elevated: rgba(255, 255, 255, 0.06);
+  /* Accent: neon-inspired teal for signals and highlights */
+  --accent: rgba(0, 212, 255, 0.9);
+  --accent-muted: rgba(0, 200, 255, 0.6);
+  --accent-success: rgba(134, 239, 172, 0.9);
+  --accent-warm: rgba(251, 191, 36, 0.9);
+  /* Text hierarchy */
+  --text-primary: rgba(248, 250, 252, 0.98);
+  --text-secondary: rgba(203, 213, 225, 0.9);
+  --text-tertiary: rgba(148, 163, 184, 0.85);
+  /* Support: soft red (alerts) */
+  --color-alert: #f87171;
+  /* Shape & layout */
+  --radius: 10px;
+  --radius-sm: 8px;
+  --space: 8px;
+  --space-lg: 16px;
+  --divider: 1px solid rgba(255, 255, 255, 0.08);
+  --divider-color: rgba(255, 255, 255, 0.12);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Icons: 24px base, linear/outlined */
+  --icon-size: 20px;
+}
+
+body.theme-light {
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #e2e8f0;
+  --surface: rgba(0, 0, 0, 0.03);
+  --surface-elevated: rgba(0, 0, 0, 0.06);
+  --accent: rgba(14, 165, 233, 0.95);
+  --accent-muted: rgba(14, 165, 233, 0.7);
+  --accent-success: rgba(34, 197, 94, 0.9);
+  --accent-warm: rgba(245, 158, 11, 0.9);
+  --text-primary: rgba(15, 23, 42, 0.95);
+  --text-secondary: rgba(71, 85, 105, 0.9);
+  --text-tertiary: rgba(100, 116, 139, 0.85);
+  --color-alert: #dc2626;
+  --divider: 1px solid rgba(0, 0, 0, 0.08);
+  --divider-color: rgba(0, 0, 0, 0.1);
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Hide scrollbars app-wide; content remains scrollable */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Arc sidebar: full-height panel — design language */
 html, body {
   height: 100%;
   margin: 0;
   width: 100%;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #1c2029;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
 #app-wrap {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
+  max-height: 100vh;
   width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 #sidebar {
@@ -21,8 +80,86 @@ html, body {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   width: 100%;
   box-sizing: border-box;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.conflict-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space);
+  padding: 10px var(--space-lg);
+  background: rgba(248, 113, 113, 0.14);
+  border-bottom: 1px solid rgba(248, 113, 113, 0.28);
+  color: var(--text-primary);
+}
+.conflict-banner.hidden {
+  display: none;
+}
+.conflict-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.conflict-banner-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 235, 235, 0.98);
+}
+.conflict-banner-detail {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 209, 209, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.conflict-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.conflict-meeting-select {
+  max-width: 220px;
+  padding: 6px 8px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(248, 113, 113, 0.12);
+  color: rgba(255, 235, 235, 0.98);
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+}
+.conflict-meeting-select:focus {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+.conflict-resolve-btn {
+  padding: 6px 10px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(248, 113, 113, 0.2);
+  color: rgba(255, 235, 235, 0.98);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), transform 0.2s ease;
+}
+.conflict-resolve-btn:hover {
+  background: rgba(248, 113, 113, 0.3);
+}
+.conflict-resolve-btn:active {
+  transform: scale(0.98);
 }
 
 .drag-region {
@@ -30,91 +167,99 @@ html, body {
   app-region: drag;
 }
 
+/* Sidebar header: bold, clean, spacious anchor */
 #sidebar-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: var(--space-lg) var(--space-lg);
+  background: var(--surface-elevated);
+  border-bottom: var(--divider);
 }
 
 #sidebar-title {
-  font-weight: 600;
-  font-size: 16px;
-  color: rgba(220, 228, 240, 0.95);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
 }
 
 #header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space);
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
 
 #header-actions button {
-  padding: 4px 8px;
+  padding: 6px 10px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: rgba(180, 190, 205, 0.9);
+  color: var(--text-secondary);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background var(--transition), color var(--transition);
 }
 #header-actions button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(220, 228, 240, 0.95);
+  background: var(--surface);
+  color: var(--text-primary);
 }
 
-/* Schedule section (upcoming day) - fills sidebar, scrolls */
+/* Schedule section: fixed-height viewport; content scrolls inside (no scrollbar) */
 #schedule-section {
   position: relative;
   z-index: 0;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.15);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: hidden;
+  padding: var(--space);
+  background: var(--bg-secondary);
+  border-bottom: var(--divider);
+  -webkit-overflow-scrolling: touch;
 }
 
 .schedule-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 2px;
+  gap: var(--space);
+  margin-bottom: 4px;
 }
-#schedule-header {
+#schedule-header.schedule-heading {
+  margin: 0;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(160, 170, 190, 0.95);
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
 }
 .schedule-refresh-btn {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: none;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(180, 190, 210, 0.9);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: background var(--transition), color var(--transition), transform 0.2s ease;
 }
 .schedule-refresh-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(220, 228, 240, 0.95);
+  background: var(--surface-elevated);
+  color: var(--accent);
 }
 .schedule-refresh-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 .schedule-refresh-btn.refreshing {
   animation: schedule-refresh-spin 0.6s ease-in-out;
@@ -125,42 +270,40 @@ html, body {
 }
 
 .schedule-date {
+  margin: 0 0 var(--space) 0;
   font-size: 12px;
-  color: rgba(200, 210, 230, 0.9);
-  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
+/* List blocks: compact spacing so full day fits in fixed height */
 .schedule-list-wrap {
-  margin-bottom: 8px;
+  margin-bottom: var(--space);
 }
 .schedule-list-wrap:last-of-type {
   margin-bottom: 0;
 }
 
-/* Divider between Meetings and Tasks (same as Tasks/Projects divider) */
 #schedule-meetings-wrap {
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid rgba(175, 175, 175, 0.08);
-}
-body.theme-light #schedule-meetings-wrap {
-  border-bottom-color: rgba(206, 206, 206, 0.08);
+  padding-bottom: var(--space);
+  margin-bottom: var(--space);
+  border-bottom: var(--divider);
 }
 #schedule-tasks-wrap {
   padding-top: 0;
   margin-top: 0;
 }
 
-/* Projects: own section, visually distinct from Tasks */
 #schedule-projects-section.schedule-block-projects {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: var(--space);
+  padding-top: var(--space);
+  border-top: var(--divider);
 }
 #schedule-projects-section.schedule-block-projects #schedule-projects-wrap {
   margin-bottom: 0;
 }
 
+/* Subheaders: medium weight, labels for quick scanning */
 .schedule-subtitle {
   display: flex;
   align-items: center;
@@ -168,36 +311,152 @@ body.theme-light #schedule-meetings-wrap {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  color: rgba(140, 150, 170, 0.9);
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
   margin-bottom: 4px;
+}
+.schedule-subtitle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Add-item controls: design language — accent sparingly, 8px grid, rounded corners, transitions */
+.schedule-subtitle-with-add {
+  justify-content: space-between;
+}
+.schedule-add-btn,
+.completed-toggle {
+  padding: 4px var(--space);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.schedule-add-btn:hover,
+.completed-toggle:hover {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+}
+.schedule-add-btn:active,
+.completed-toggle:active {
+  transform: scale(0.98);
+}
+.schedule-add-form {
+  margin-top: var(--space);
+  margin-bottom: var(--space);
+  padding: var(--space-lg);
+  border-radius: var(--radius);
+  background: var(--surface-elevated);
+  border: var(--divider);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space);
+}
+.schedule-add-form.hidden {
+  display: none;
+}
+.schedule-add-form input {
+  padding: var(--space) var(--space-lg);
+  font-size: 11px;
+  font-family: inherit;
+  border: 1px solid var(--divider-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.schedule-add-form input::placeholder {
+  color: var(--text-tertiary);
+}
+.schedule-add-form .schedule-add-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+.schedule-add-form input:focus {
+  border-color: var(--accent-muted);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.12);
+}
+.schedule-add-actions {
+  display: flex;
+  gap: var(--space);
+}
+.schedule-add-submit,
+.schedule-add-cancel {
+  padding: 6px var(--space-lg);
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), transform 0.2s ease;
+}
+.schedule-add-submit {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+.schedule-add-submit:hover {
+  filter: brightness(1.08);
+}
+.schedule-add-submit:active {
+  transform: scale(0.98);
+}
+.schedule-add-cancel {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+.schedule-add-cancel:hover {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+}
+.schedule-add-form .schedule-add-error {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-alert);
+}
+body.theme-light .schedule-add-form input:focus {
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
 }
 .schedule-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: var(--icon-size);
+  height: var(--icon-size);
   flex-shrink: 0;
-  color: rgba(0, 200, 255, 0.85);
+  color: var(--accent);
+  transition: color var(--transition);
 }
 .schedule-icon svg {
   width: 100%;
   height: 100%;
 }
 #schedule-tasks-wrap .schedule-icon {
-  color: rgba(160, 200, 140, 0.9);
+  color: var(--accent-success);
 }
 #schedule-projects-wrap .schedule-icon {
-  color: rgba(220, 180, 100, 0.9);
+  color: var(--accent-warm);
 }
 
 #schedule-meetings {
   list-style: none;
-  padding: 0;
+  padding: 0 0 0 8px;
   margin: 0;
 }
 .schedule-meeting-group {
-  margin-bottom: 10px;
+  margin-bottom: var(--space);
+  padding: 2px 0;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
 }
 .schedule-meeting-group:last-child {
   margin-bottom: 0;
@@ -205,98 +464,203 @@ body.theme-light #schedule-meetings-wrap {
 .schedule-meeting-title {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(180, 190, 210, 0.95);
-  padding-left: 12px;
+  color: var(--text-primary);
+  padding-left: 14px;
   position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
 }
 .schedule-meeting-title::before {
-  content: '•';
+  content: '';
   position: absolute;
-  font-size: 18px;
-  top: -4px;
   left: 0;
-  color: rgba(0, 200, 255, 0.85);
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
 }
+/* Meeting action items: indented under the meeting title text */
 .schedule-meeting-action-items {
   list-style: none;
   margin: 0;
   padding: 0;
-  padding-left: 10px;
-  font-size: 12px;
-  color: #e8ecf4;
+  padding-left: 26px; /* align under meeting title text, past the dot */
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
 }
-.schedule-meeting-action-items li {
-  padding: 0;
+#schedule-meetings .schedule-meeting-action-items li {
+  padding: 1px 0;
   position: relative;
-  padding-left: 10px;
+  padding-left: 12px;
 }
-.schedule-meeting-action-items li::before {
-  content: '◦';
+#schedule-meetings .schedule-meeting-action-items li::before {
+  content: '';
   position: absolute;
   left: 0;
-  color: rgba(140, 150, 170, 0.7);
+  top: 0.5em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
 }
 .schedule-meeting-action-items li.schedule-none {
-  color: rgba(140, 150, 170, 0.7);
+  color: var(--text-tertiary);
   font-style: italic;
+  font-size: 11px;
 }
 
 #schedule-tasks {
   list-style: none;
   margin: 0;
-  padding: 0;
-  font-size: 12px;
-  color: rgba(220, 228, 240, 0.9);
-  line-height: 1.4;
+  padding: 0 0 0 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.35;
 }
 
 #schedule-meetings li,
 #schedule-tasks li {
-  padding: 1px 0;
-  padding-left: 12px;
+  padding: 2px 0;
+  padding-left: 14px;
   position: relative;
 }
 #schedule-meetings li::before {
-  content: '•';
+  content: '';
   position: absolute;
   left: 0;
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 #schedule-tasks li::before {
-  content: '•';
+  content: '';
   position: absolute;
-  font-size: 18px;
-  top: -3px;
   left: 0;
-  color: rgba(160, 200, 140, 0.9);
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-success);
 }
 
-/* Upcoming event: highlight on schedule instead of popup */
-li.schedule-item-upcoming {
-  background: rgba(0, 200, 255, 0.12);
-  border-left: 3px solid rgba(0, 200, 255, 0.8);
-  margin-left: -3px;
-  padding-left: 15px;
-  border-radius: 0 4px 4px 0;
+/* Keep schedule times aligned when titles wrap */
+#schedule-tasks .schedule-time {
+  flex: 0 0 52px;
+  width: 52px;
+  margin-right: 0;
+  text-align: left;
+  white-space: nowrap;
 }
-body.theme-light li.schedule-item-upcoming {
-  background: rgba(10, 126, 164, 0.12);
-  border-left-color: rgba(10, 126, 164, 0.7);
+#schedule-tasks .schedule-title,
+.schedule-meeting-title .schedule-title {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-.schedule-meeting-group.schedule-item-upcoming .schedule-meeting-title {
-  background: rgba(0, 200, 255, 0.12);
-  border-left: 3px solid rgba(0, 200, 255, 0.8);
-  margin-left: -3px;
-  padding-left: 3px;
-  border-radius: 0 4px 4px 0;
+/* Meeting time: right-aligned */
+.schedule-meeting-title .schedule-time-right {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  padding-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
-body.theme-light .schedule-meeting-group.schedule-item-upcoming .schedule-meeting-title {
-  background: rgba(10, 126, 164, 0.12);
-  border-left-color: rgba(10, 126, 164, 0.7);
+.meeting-badge {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0.85;
+}
+.meeting-badge-now {
+  color: var(--accent-success);
 }
 
-/* Projects: each project is a group with its own task list */
+/* Bump button: small, subtle, appears on hover */
+#schedule-tasks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.task-bump-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 1px 5px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition), background var(--transition), color var(--transition);
+}
+#schedule-tasks li:hover .task-bump-btn {
+  opacity: 1;
+}
+.task-bump-btn:hover {
+  background: var(--surface-elevated);
+  color: var(--accent-success);
+}
+.task-bump-btn:active {
+  transform: scale(0.95);
+}
+.task-bump-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+body.theme-light .task-bump-btn:hover {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--accent-success);
+}
+
+/* Active/upcoming highlight: right-side bar, color-matched to section */
+
+/* Tasks: green bar (accent-success) */
+#schedule-tasks li.schedule-item-upcoming {
+  background: var(--surface-elevated);
+  border-right: 3px solid var(--accent-success);
+  margin-right: -3px;
+  padding-right: 12px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+body.theme-light #schedule-tasks li.schedule-item-upcoming {
+  background: rgba(34, 197, 94, 0.08);
+  border-right-color: var(--accent-success);
+}
+
+/* Meetings: teal bar (accent) — highlight the entire group */
+.schedule-meeting-group.schedule-item-upcoming {
+  background: var(--surface-elevated);
+  border-right: 3px solid var(--accent);
+  margin-right: -3px;
+  margin-left: -5px;
+  padding: 5px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+body.theme-light .schedule-meeting-group.schedule-item-upcoming {
+  background: rgba(14, 165, 233, 0.08);
+  border-right-color: var(--accent);
+}
+
+/* Projects: compact so full day fits */
 .schedule-project-group {
-  margin-bottom: 10px;
+  margin-bottom: var(--space);
+  padding: 2px 0;
+  padding-left: 8px;
 }
 .schedule-project-group:last-child {
   margin-bottom: 0;
@@ -304,55 +668,117 @@ body.theme-light .schedule-meeting-group.schedule-item-upcoming .schedule-meetin
 .schedule-project-title {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(180, 190, 210, 0.95);
-  margin-bottom: 4px;
-  padding-left: 12px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  padding-left: 14px;
   position: relative;
 }
 .schedule-project-title::before {
-  content: '•';
+  content: '';
   position: absolute;
-  font-size: 18px;
-  top: -4px;
   left: 0;
-  color: rgba(220, 180, 100, 0.9);
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-warm);
 }
 .schedule-project-none {
   font-size: 12px;
-  color: rgba(140, 150, 170, 0.7);
+  color: var(--text-tertiary);
   font-style: italic;
-  padding: 2px 0;
+  padding: var(--space) 0;
+  padding-left: 8px;
 }
+
+/* Completed this week */
+#schedule-completed-section {
+  margin-top: var(--space);
+  padding-top: var(--space);
+  border-top: var(--divider);
+}
+#schedule-completed-section.hidden {
+  display: none;
+}
+#schedule-completed {
+  margin: 0;
+  padding: 0 0 0 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+#schedule-completed .completed-summary {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+#schedule-completed .completed-list.hidden {
+  display: none;
+}
+#schedule-completed .completed-list {
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 450px;
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+#schedule-completed .completed-list::-webkit-scrollbar {
+  display: none;             /* Chrome/Safari/Electron */
+}
+#schedule-completed .completed-list li {
+  padding: 2px 0 2px 14px;
+  position: relative;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+#schedule-completed .completed-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-success);
+  opacity: 0.5;
+}/* Project task items: grey dot, same as meeting action items */
 .schedule-project-tasks {
   list-style: none;
   margin: 0;
   padding: 0;
-  padding-left: 10px;
-  font-size: 12px;
-  color: #e8ecf4;
+  padding-left: 14px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
 }
 .schedule-project-tasks li {
-  padding: 2px 0;
+  padding: 1px 0;
   position: relative;
-  padding-left: 10px;
+  padding-left: 12px;
 }
 .schedule-project-tasks li::before {
-  content: '◦';
+  content: '';
   position: absolute;
   left: 0;
-  color: rgba(160, 170, 190, 0.8);
+  top: 0.5em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
 }
 
 .schedule-time {
   font-size: 11px;
-  color: rgba(160, 170, 190, 0.85);
-  margin-right: 6px;
+  color: var(--text-tertiary);
+  margin-right: var(--space);
 }
 
 .schedule-empty {
-  font-size: 11px;
-  color: rgba(140, 150, 170, 0.8);
-  padding: 6px 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: var(--space-lg) 0;
 }
 .schedule-empty.hidden {
   display: none;
@@ -364,297 +790,92 @@ body.theme-light .schedule-meeting-group.schedule-item-upcoming .schedule-meetin
 #schedule-projects-section.hidden {
   display: none;
 }
+/* Upcoming notification: streamlined inline bar at top of schedule */
 .schedule-upcoming-wrap {
-  margin-top: 10px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  background: #e6dfd0;
-  border: 1px solid rgba(160, 150, 130, 0.5);
+  margin-bottom: var(--space);
 }
 .schedule-upcoming-wrap.hidden {
   display: none;
-}
-.schedule-upcoming-title {
-  color: #4a4035;
-  font-weight: 600;
 }
 #schedule-upcoming {
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 12px;
-  color: #2c2823;
-  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 #schedule-upcoming li {
-  padding: 3px 0;
-  padding-left: 10px;
-  position: relative;
-}
-#schedule-upcoming li::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: #5c5248;
-}
-#schedule-upcoming .schedule-upcoming-time {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-elevated);
   font-size: 11px;
-  color: #3d362e;
-  margin-right: 6px;
-  font-weight: 600;
+  line-height: 1;
 }
-#schedule-upcoming .schedule-upcoming-meta {
-  display: block;
+#schedule-upcoming li .upcoming-status {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent);
+}
+#schedule-upcoming li .upcoming-label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#schedule-upcoming li .upcoming-time {
+  flex-shrink: 0;
   font-size: 10px;
-  color: #4a4238;
-  margin-top: 1px;
-  margin-left: 0;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+/* Section-colored status badges */
+#schedule-upcoming li.upcoming-meeting .upcoming-status {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent);
+}
+#schedule-upcoming li.upcoming-task .upcoming-status {
+  background: rgba(134, 239, 172, 0.15);
+  color: var(--accent-success);
+}
+#schedule-upcoming li.upcoming-event .upcoming-status {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--accent-warm);
+}
+/* Light theme */
+body.theme-light #schedule-upcoming li {
+  background: rgba(0, 0, 0, 0.04);
+}
+body.theme-light #schedule-upcoming li.upcoming-meeting .upcoming-status {
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent);
+}
+body.theme-light #schedule-upcoming li.upcoming-task .upcoming-status {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--accent-success);
+}
+body.theme-light #schedule-upcoming li.upcoming-event .upcoming-status {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent-warm);
 }
 li.schedule-none {
-  color: rgba(140, 150, 170, 0.7);
+  color: var(--text-tertiary);
   font-style: italic;
-}
-
-#messages-wrap {
-  position: relative;
-  z-index: 2;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 12px;
-  scrollbar-width: thin;
-}
-#messages-wrap::-webkit-scrollbar {
-  width: 6px;
-}
-#messages-wrap::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
-
-#messages {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding: 2px 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #e8ecf4;
-}
-
-#input-wrap {
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-#input-wrap #input {
-  flex: 1;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
-  background: rgba(28, 32, 42, 0.8);
-  color: rgba(240, 244, 248, 0.95);
-  font-size: 13px;
-  outline: none;
-}
-#input-wrap #input:focus {
-  border-color: rgba(0, 200, 255, 0.4);
-}
-
-#sendBtn {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  background: #3b82f6;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#sendBtn:hover {
-  background: #2563eb;
-}
-
-/* Debug panel */
-#debug-panel {
-  flex-shrink: 0;
-  max-height: 220px;
-  display: flex;
-  flex-direction: column;
-  background: rgba(0, 0, 0, 0.4);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  transition: max-height 0.2s ease;
-}
-#debug-panel.collapsed {
-  max-height: 0;
-  overflow: hidden;
-  border-top-width: 0;
-}
-
-#debug-status {
-  padding: 6px 10px;
   font-size: 11px;
-  color: rgba(180, 190, 205, 0.9);
-  font-family: ui-monospace, monospace;
-}
-#debug-last-error.hidden { display: none; }
-#debug-last-error.error { color: #f87171; }
-
-#debug-actions {
-  padding: 4px 8px;
-  display: flex;
-  gap: 8px;
-}
-#debug-actions button {
-  padding: 4px 10px;
-  border: none;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(200, 210, 230, 0.9);
-  font-size: 11px;
-  cursor: pointer;
-}
-#debug-actions button:hover {
-  background: rgba(255, 255, 255, 0.12);
 }
 
-#debug-log {
-  flex: 1;
-  min-height: 80px;
-  max-height: 120px;
-  margin: 0;
-  padding: 8px 10px;
-  overflow-y: auto;
-  font-size: 10px;
-  line-height: 1.4;
-  font-family: ui-monospace, monospace;
-  color: rgba(160, 170, 190, 0.9);
-  background: rgba(0, 0, 0, 0.3);
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-/* Arc panel: outside sidebar, collapsible */
-#arc-panel {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.25);
-  max-height: 40vh;
-  min-height: 0;
-  transition: max-height 0.25s ease;
-}
-#arc-panel.collapsed {
-  max-height: 44px;
-  min-height: 44px;
-}
-#arc-panel.collapsed #arc-panel-body {
-  display: none;
-}
-#arc-panel-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-  user-select: none;
-  color: rgba(220, 228, 240, 0.95);
-  font-size: 13px;
-  font-weight: 600;
-}
-#arc-panel-header:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-#arc-panel-chevron {
-  font-size: 10px;
-  color: rgba(180, 190, 205, 0.9);
-  transition: transform 0.2s ease;
-}
-#arc-panel:not(.collapsed) #arc-panel-chevron {
-  transform: rotate(-90deg);
-}
-#arc-panel-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.message {
-  display: block;
-  max-width: 85%;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #e8ecf4;
-  word-wrap: break-word;
-}
-.message.user {
-  align-self: flex-end;
-  color: #b8e0f0;
-  background: rgba(0, 200, 255, 0.18);
-  border: 1px solid rgba(0, 200, 255, 0.35);
-}
-/* Arc bot messages: high specificity + inherit so all inner HTML is readable */
-#messages .message.bot {
-  align-self: flex-start;
-  color: #ffffff;
-  background: rgba(45, 55, 72, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-#messages .message.bot,
-#messages .message.bot * {
-  color: inherit;
-}
-#messages .message.bot strong { font-weight: 700; color: #ffffff; }
-#messages .message.bot em { font-style: italic; color: #e8ecf4; }
-body.theme-light .message.user {
-  color: #0d5a6e;
-  background: rgba(10, 126, 164, 0.12);
-  border-color: rgba(10, 126, 164, 0.25);
-}
-body.theme-light .message.bot,
-body.theme-light #messages .message.bot {
-  color: #1f2937;
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(0, 0, 0, 0.12);
-}
-body.theme-light #messages .message.bot * { color: inherit; }
-body.theme-light #messages .message.bot strong { color: #111827; }
-
-.message strong { font-weight: 700; }
-.message em { font-style: italic; }
-.message ul { margin: 6px 0; padding-left: 18px; list-style: none; }
-.message li { margin: 3px 0; position: relative; }
-.message li::before {
-  content: '•';
-  position: absolute;
-  left: -14px;
-  color: #a5c8f0;
-}
-#messages .message.bot li::before {
-  color: rgba(255, 255, 255, 0.85);
-}
 
 /* Main bar container - draggable; panel is absolutely positioned above the bar */
 #bar-wrap {

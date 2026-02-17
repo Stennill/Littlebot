@@ -5,7 +5,9 @@ class EventNotifier {
   constructor() {
     this.notificationWindow = 15; // minutes before event to notify
     this.checkInterval = 5 * 60 * 1000; // Check every 5 minutes
-    this.notifiedEvents = new Set(); // Track already notified events
+    // Track already-notified events with the start time they were notified for.
+    // Map<eventId, { startIso: string, notifiedAtMs: number }>
+    this.notifiedEvents = new Map();
   }
 
   /**
@@ -94,7 +96,7 @@ class EventNotifier {
         const title = item.properties[titleProp.name] || 'Untitled';
         const type = item.properties['Type'] || 'Event';
 
-        if (upcoming && !this.notifiedEvents.has(eventId)) {
+        if (upcoming && this.shouldNotifySlack(eventId, dateValue.start, minutesUntil)) {
           upcomingEvents.push({
             id: eventId,
             title,
@@ -102,7 +104,7 @@ class EventNotifier {
             startTime: eventStart,
             minutesUntil: Math.round(minutesUntil)
           });
-          this.notifiedEvents.add(eventId);
+          this.notifiedEvents.set(eventId, { startIso: dateValue.start, notifiedAtMs: now.getTime() });
         }
 
         if (upcoming || inProgress) {
@@ -151,6 +153,8 @@ class EventNotifier {
         title: e.title,
         minutesUntil: e.minutesUntil,
         timeStr: e.timeStr || this.formatTime(e.startTime),
+        startTime: e.startTime ? e.startTime.toISOString() : null,
+        endTime: e.endTime ? e.endTime.toISOString() : null,
         inProgress: !!e.inProgress
       })));
     }
@@ -187,10 +191,17 @@ class EventNotifier {
    * Clean up old notified events
    */
   cleanupNotifiedEvents() {
-    // For now, just clear after 100 events to prevent memory growth
-    if (this.notifiedEvents.size > 100) {
-      this.notifiedEvents.clear();
-      console.log('[Event Notifier] Cleared notification history');
+    const now = Date.now();
+    // Keep enough history to prevent repeats; prune old entries by age
+    const MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 hours
+    for (const [id, entry] of this.notifiedEvents.entries()) {
+      if (!entry || !entry.notifiedAtMs) {
+        this.notifiedEvents.delete(id);
+        continue;
+      }
+      if (now - entry.notifiedAtMs > MAX_AGE_MS) {
+        this.notifiedEvents.delete(id);
+      }
     }
   }
 
@@ -200,6 +211,23 @@ class EventNotifier {
   reset() {
     this.notifiedEvents.clear();
     console.log('[Event Notifier] Reset notification history');
+  }
+
+  /**
+   * Slack should fire once per event start time, about 15 minutes beforehand.
+   * We allow a small tolerance because checks run on an interval.
+   */
+  shouldNotifySlack(eventId, startIso, minutesUntil) {
+    if (!eventId || !startIso) return false;
+    // Only notify in the 0..15 minute window
+    if (!(minutesUntil > 0 && minutesUntil <= this.notificationWindow)) return false;
+
+    const existing = this.notifiedEvents.get(eventId);
+    // If we've never notified, or the event was rescheduled (start changed), allow notify
+    if (!existing || existing.startIso !== startIso) return true;
+
+    // Already notified for this exact start time
+    return false;
   }
 }
 

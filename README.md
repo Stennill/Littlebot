@@ -1,9 +1,19 @@
 Arc Notion Sidebar
 =================
 
-A desktop assistant sidebar built with Electron, with Notion schedule integration.
+Arc is a **right-side desktop sidebar** (Electron app) focused on **Notion schedule integration**.
 
-Quick start
+### What you get
+
+- **Always-visible sidebar window** (frameless) designed to live on the right edge of your screen
+- **Settings UI** for API key and integrations
+
+### Requirements
+
+- **Node.js** (for development/building)
+- Windows 10/11 recommended (installer targets Windows)
+
+### Run from source (development)
 
 1. Install dependencies:
 
@@ -11,44 +21,90 @@ Quick start
 npm install
 ```
 
-2. Run in development:
+2. Start the app:
 
 ```bash
 npm start
 ```
 
-Building an installable (Windows)
+### Configure your API key
 
-To create installers you can run on another machine:
+You can set your Anthropic key either:
 
-```bash
-npm install
-npm run dist
-```
-
-Output goes to the `dist/` folder:
-
-- **Arc Notion Sidebar Setup x.x.x.exe** – NSIS installer: run on another PC to install to Program Files, with desktop and Start Menu shortcuts. Choose install location during setup.
-- **Arc Notion Sidebar x.x.x.exe** – Portable: copy the exe (and the rest of the folder) anywhere and run; no install step.
-- **Arc Notion Sidebar x.x.x-win.zip** – Zip of the portable build for sharing.
-
-On the other machine, run the installer or the portable exe, then open Settings (gear) to add your Anthropic API key and Notion details.
-
-Notes
-
-- Uses the Web Speech API for speech-to-text and SpeechSynthesis for TTS (works in Electron on supported platforms).
-- The main process currently contains placeholder reply logic. Replace with an AI backend (OpenAI HTTP API or local model) as needed.
-- To build a Windows installer, configure `electron-builder` and run `npm run dist`.
- - Anthropic: Arc Notion Sidebar can call Anthropic's API if you set an API key. Set the environment variable `ANTHROPIC_API_KEY` before running, for example on Windows PowerShell:
-- Anthropic: Arc Notion Sidebar can call Anthropic's API. You can set the key either via the environment variable `ANTHROPIC_API_KEY`, or use the in-app Settings pane (gear icon) to save it locally.
-
-Environment variable (PowerShell):
+- **In-app**: open **Settings** (gear icon) → paste key → **Save**
+- **Or via env var** (PowerShell):
 
 ```powershell
-$env:ANTHROPIC_API_KEY = 'your_key_here'
+$env:ANTHROPIC_API_KEY = "your_key_here"
 npm start
 ```
 
-Or open the app, click the gear button, paste your Anthropic key, and click Save. The key is stored in the app's user data folder.
+### Build an installable EXE (Windows)
 
-The app will send the user's text to Anthropic and speak the assistant's reply. If no API key is present, Arc Notion Sidebar uses a simple rule-based fallback.
+This repo uses **electron-builder** to generate installable artifacts.
+
+Build everything for Windows:
+
+```powershell
+npm install
+npm run dist:win
+```
+
+After a successful build, outputs are in `dist\`:
+
+- **`Arc Notion Sidebar Setup x.x.x.exe`**: NSIS installer (Start Menu + Desktop shortcuts)
+- **`Arc Notion Sidebar x.x.x.exe`**: portable executable (no install)
+- **`Arc Notion Sidebar x.x.x-win.zip`**: zip of the portable build
+
+For more detail (and troubleshooting), see `docs/BUILD-INSTALLER.md`.
+
+### Update the EXE after you make changes
+
+1. Make your code/UI changes.
+2. (Recommended) bump the version so the filename changes.
+3. Rebuild the EXE/installer.
+
+#### Bump version numbers (recommended)
+
+The build filenames come from `package.json` **version**. The app also tracks version/changelog in `version.json`.
+
+Use the helper to update **both** files at once:
+
+```powershell
+node update-version.js 1.3.1 "Release name" "Change one" "Change two"
+```
+
+Or via npm:
+
+```powershell
+npm run version:bump -- 1.3.1 "Release name" "Change one" "Change two"
+```
+
+Then rebuild:
+
+```powershell
+npm run dist:win
+```
+
+#### Rebuild without changing the version
+
+If you don’t care about the versioned filename, just rebuild:
+
+```powershell
+npm run dist:win
+```
+
+### Troubleshooting builds (Windows symlink error)
+
+If you see:
+
+> `Cannot create symbolic link : A required privilege is not held by the client.`
+
+Fix by doing **one** of these:
+
+- Run the build terminal **as Administrator**, then run `npm run dist:win`
+- Or enable Windows **Developer Mode**, then run `npm run dist:win`
+
+### Notes
+
+- Speech features use the **Web Speech API** and **SpeechSynthesis** (availability varies by OS/runtime).

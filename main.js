@@ -193,15 +193,24 @@ function createSettingsWindow() {
   });
 }
 
+const DEBUG_LOG_BUFFER_MAX = 100;
+const debugLogBuffer = [];
+
 function sendArcDebug(payload) {
+  const p = typeof payload === 'string' ? { type: 'log', message: payload } : payload;
+  const msg = {
+    ts: new Date().toISOString(),
+    type: p.type || 'log',
+    message: p.message || '',
+    detail: p.detail
+  };
+  debugLogBuffer.push(msg);
+  if (debugLogBuffer.length > DEBUG_LOG_BUFFER_MAX) debugLogBuffer.shift();
   if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
-    const p = typeof payload === 'string' ? { type: 'log', message: payload } : payload;
-    mainWindow.webContents.send('arc-debug', {
-      ts: new Date().toISOString(),
-      type: p.type || 'log',
-      message: p.message || '',
-      detail: p.detail
-    });
+    mainWindow.webContents.send('arc-debug', msg);
+  }
+  if (settingsWindow && !settingsWindow.isDestroyed() && settingsWindow.webContents) {
+    settingsWindow.webContents.send('arc-debug', msg);
   }
 }
 
@@ -874,6 +883,10 @@ ipcMain.handle('get-settings', async () => {
   return storedConfig || {};
 });
 
+ipcMain.handle('get-debug-log', async () => {
+  return debugLogBuffer.slice();
+});
+
 ipcMain.handle('set-settings', async (event, settings) => {
   storedConfig = Object.assign({}, storedConfig, settings || {});
   storedApiKey = storedConfig.anthropicKey || null;
@@ -1175,25 +1188,636 @@ ipcMain.handle('notion-get-schema', async () => {
   }
 });
 
+// Notion create handlers (meeting with start/end; task/project available when infrastructure is ready)
+const APP_TIME_ZONE = 'America/New_York';
+
+function addDaysToISODate(isoDate, days) {
+  const d = new Date(`${isoDate}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function getESTNowParts(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: APP_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).formatToParts(now);
+  const map = {};
+  for (const p of parts) map[p.type] = p.value;
+  return map;
+}
+
+function getESTDateISO(now = new Date()) {
+  const p = getESTNowParts(now);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+function getESTHour(now = new Date()) {
+  const p = getESTNowParts(now);
+  return parseInt(p.hour || '0', 10) || 0;
+}
+
+function getESTWeekdayIndexFromISO(isoDate) {
+  const probe = new Date(`${isoDate}T12:00:00Z`);
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: APP_TIME_ZONE, weekday: 'short' }).format(probe);
+  const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[name] ?? probe.getUTCDay();
+}
+
+function formatDateLabelEST(isoDate) {
+  const probe = new Date(`${isoDate}T12:00:00Z`);
+  return probe.toLocaleDateString('en-US', { timeZone: APP_TIME_ZONE, weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function formatTimeEST(isoDateTime) {
+  if (!isoDateTime) return '';
+  return new Date(isoDateTime).toLocaleTimeString('en-US', { timeZone: APP_TIME_ZONE, hour: 'numeric', minute: '2-digit' });
+}
+
 function getNextBusinessDay() {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (now.getHours() >= 17) d.setDate(d.getDate() + 1);
-  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-  return d;
+  let iso = getESTDateISO();
+  if (getESTHour() >= 17) iso = addDaysToISODate(iso, 1);
+  while ([0, 6].includes(getESTWeekdayIndexFromISO(iso))) {
+    iso = addDaysToISODate(iso, 1);
+  }
+  // Noon UTC anchor avoids accidental day rollover in conversions.
+  return new Date(`${iso}T12:00:00Z`);
 }
 
 function formatDateISO(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/** Return ISO date-time string for a given date and optional time (e.g. "14:30" or "2:30 PM"). */
+function toDateTimeISO(dateStr, timeStr) {
+  const baseDate = String(dateStr || '').trim();
+  if (!baseDate) return '';
+  if (!timeStr || !timeStr.trim()) return toDateOnlyISO(baseDate);
+  const t = String(timeStr).trim();
+  let hours = 0, minutes = 0;
+  const match12 = t.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+  if (match12) {
+    hours = parseInt(match12[1], 10);
+    minutes = parseInt(match12[2], 10);
+    if ((match12[3] || '').toLowerCase() === 'pm' && hours < 12) hours += 12;
+    if ((match12[3] || '').toLowerCase() === 'am' && hours === 12) hours = 0;
+  } else {
+    const parts = t.split(':');
+    hours = parseInt(parts[0], 10) || 0;
+    minutes = parseInt(parts[1], 10) || 0;
+  }
+
+  const [y, m, d] = baseDate.split('-').map(v => parseInt(v, 10));
+  if (!y || !m || !d) return baseDate;
+
+  // Convert "local time in America/New_York" to UTC instant.
+  const probe = new Date(`${baseDate}T12:00:00Z`);
+  const tzName = new Intl.DateTimeFormat('en-US', {
+    timeZone: APP_TIME_ZONE,
+    timeZoneName: 'shortOffset'
+  }).formatToParts(probe).find(p => p.type === 'timeZoneName')?.value || 'GMT-5';
+  const mOff = tzName.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/i);
+  const sign = mOff && mOff[1] === '-' ? -1 : 1;
+  const offHours = mOff ? parseInt(mOff[2], 10) || 0 : 5;
+  const offMinutes = mOff ? parseInt(mOff[3] || '0', 10) || 0 : 0;
+  const offsetMinutes = sign * (offHours * 60 + offMinutes); // e.g. -300 or -240
+
+  const utcMs = Date.UTC(y, m - 1, d, hours, minutes, 0, 0) - (offsetMinutes * 60 * 1000);
+  return new Date(utcMs).toISOString().slice(0, 19) + 'Z';
+}
+
+/** Add minutes to an ISO date-time string; return new ISO string. Parses as UTC so duration is correct. */
+function addMinutesToISO(isoStr, minutes) {
+  const s = String(isoStr).trim();
+  const hasTimezone = /(Z|[+-]\d{2}:\d{2})$/.test(s);
+  const asUtc = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !hasTimezone ? s + 'Z' : s;
+  const d = new Date(asUtc);
+  d.setUTCMinutes(d.getUTCMinutes() + minutes);
+  return d.toISOString().slice(0, 19) + 'Z';
+}
+
+/** Get schema props used for schedule (title, date, type, status). */
+async function getScheduleSchemaProps() {
+  const schema = await notionManager.getDatabaseSchema();
+  const dateProp = schema.properties.find(p => p.type === 'date');
+  const titleProp = schema.properties.find(p => p.type === 'title');
+  const typeProp = schema.properties.find(p => (p.type === 'select' || p.type === 'status') && typeof p.name === 'string' && (p.name === 'Type' || p.name.toLowerCase().includes('type')));
+  const statusProp = schema.properties.find(p => p.type === 'status' && typeof p.name === 'string' && (p.name === 'Status' || p.name.toLowerCase().includes('status')));
+  return { schema, dateProp, titleProp, typeProp, statusProp };
+}
+
+/** Work week: Mon–Fri, 8:00 AM–4:30 PM. Slots outside this are invalid. */
+const WORK_WEEK_START_HOUR = 8;
+const WORK_WEEK_START_MIN = 0;
+const WORK_WEEK_END_HOUR = 16;
+const WORK_WEEK_END_MIN = 30;
+const TASK_SLOT_DURATION_MS = 30 * 60 * 1000;
+const SLOT_GRANULARITY_MS = 15 * 60 * 1000;
+
+/** Status values that free a slot (processed/resolved items can be filled with new tasks). */
+function isSlotFreeStatus(status) {
+  const s = (status || '').toString().trim().toLowerCase();
+  return s === 'processed' || s === 'resolved';
+}
+
+/** Find next available slot for a task: work week only, avoid meetings/PTO/breaks/non-processed tasks; Processed/Resolved slots are fillable. */
+async function findNextAvailableSlot(targetDate, dateProp, titleProp, typeProp, statusProp) {
+  const isoDate = formatDateISO(targetDate);
+  const nextDay = new Date(targetDate);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const isoNext = formatDateISO(nextDay);
+  const filter = {
+    and: [
+      { property: dateProp.name, date: { on_or_after: isoDate } },
+      { property: dateProp.name, date: { before: isoNext } }
+    ]
+  };
+  const items = await notionManager.queryDatabase(filter, [{ property: dateProp.name, direction: 'ascending' }]);
+
+  const busyRanges = [];
+  for (const item of items) {
+    if (statusProp) {
+      const status = item.properties[statusProp.id] || item.properties[statusProp.name];
+      if (isSlotFreeStatus(status)) continue;
+    }
+    const dateVal = item.properties[dateProp.id] || item.properties[dateProp.name];
+    if (!dateVal || !dateVal.start) continue;
+    const startMs = dateVal.start.includes('T') ? new Date(dateVal.start).getTime() : new Date(dateVal.start + 'T12:00:00').getTime();
+    const endMs = dateVal.end && dateVal.end.includes('T') ? new Date(dateVal.end).getTime() : startMs + 60 * 60 * 1000;
+    busyRanges.push({ start: startMs, end: endMs });
+  }
+  busyRanges.sort((a, b) => a.start - b.start);
+
+  const dayStart = new Date(targetDate);
+  dayStart.setHours(WORK_WEEK_START_HOUR, WORK_WEEK_START_MIN, 0, 0);
+  const dayEnd = new Date(targetDate);
+  dayEnd.setHours(WORK_WEEK_END_HOUR, WORK_WEEK_END_MIN, 0, 0);
+  const dayStartMs = dayStart.getTime();
+  const dayEndMs = dayEnd.getTime();
+
+  let candidate = Math.max(dayStartMs, Date.now() + 30 * 60 * 1000);
+  candidate = Math.ceil(candidate / SLOT_GRANULARITY_MS) * SLOT_GRANULARITY_MS;
+
+  while (candidate + TASK_SLOT_DURATION_MS <= dayEndMs) {
+    const candidateEnd = candidate + TASK_SLOT_DURATION_MS;
+    let overlaps = false;
+    for (const { start, end } of busyRanges) {
+      if (candidateEnd <= start) break;
+      if (candidate < end) {
+        overlaps = true;
+        candidate = Math.ceil(end / SLOT_GRANULARITY_MS) * SLOT_GRANULARITY_MS;
+        break;
+      }
+    }
+    if (!overlaps) {
+      const out = new Date(candidate);
+      return out.toISOString().slice(0, 19) + 'Z';
+    }
+  }
+
+  let nextWorkDay = new Date(targetDate);
+  nextWorkDay.setDate(nextWorkDay.getDate() + 1);
+  while (nextWorkDay.getDay() === 0 || nextWorkDay.getDay() === 6) nextWorkDay.setDate(nextWorkDay.getDate() + 1);
+  return findNextAvailableSlot(nextWorkDay, dateProp, titleProp, typeProp, statusProp);
+}
+
+function buildTypeValue(typeProp, value) {
+  if (!typeProp) return null;
+  return typeProp.type === 'status' ? { status: { name: value } } : { select: { name: value } };
+}
+
+function toDateOnlyISO(isoOrDate) {
+  const s = String(isoOrDate || '').trim();
+  if (!s) return '';
+  return s.includes('T') ? s.split('T')[0] : s;
+}
+
+function parseDateMs(iso) {
+  if (!iso) return NaN;
+  const s = String(iso).trim();
+  const hasTimezone = /(Z|[+-]\d{2}:\d{2})$/.test(s);
+  const asUtc = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !hasTimezone ? s + 'Z' : s;
+  const d = new Date(asUtc);
+  return d.getTime();
+}
+
+function rangesOverlap(aStartMs, aEndMs, bStartMs, bEndMs) {
+  if (!Number.isFinite(aStartMs) || !Number.isFinite(aEndMs) || !Number.isFinite(bStartMs) || !Number.isFinite(bEndMs)) return false;
+  return aStartMs < bEndMs && bStartMs < aEndMs;
+}
+
+function normalizeTypeName(typeValue) {
+  const raw = (typeof typeValue === 'string' ? typeValue : (typeValue?.name ?? '')).trim().toLowerCase();
+  if (!raw) return '';
+  if (raw === 'meeting' || raw.includes('meeting')) return 'meeting';
+  if (raw === 'break' || raw.includes('break')) return 'break';
+  if (raw === 'pto' || raw.includes('pto') || raw.includes('holiday') || raw.includes('vacation')) return 'pto';
+  return raw;
+}
+
+function isAllDayBlockType(typeName) {
+  const t = normalizeTypeName(typeName);
+  return t === 'pto';
+}
+
+function nextWorkingDaySameTimeMs(startMs) {
+  const d = new Date(startMs);
+  do {
+    d.setUTCDate(d.getUTCDate() + 1);
+  } while (d.getUTCDay() === 0 || d.getUTCDay() === 6); // Sun/Sat
+  return d.getTime();
+}
+
+function getConflictRangeMs({ start, end, type }) {
+  const s = String(start || '').trim();
+  if (!s) return null;
+  const t = normalizeTypeName(type);
+  if (s.includes('T')) {
+    const startMs = parseDateMs(s);
+    const endMs = parseDateMs(end || addMinutesToISO(s, 60));
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return null;
+    return { startMs, endMs };
+  }
+
+  // Date-only value (common for PTO) blocks the full day.
+  const dayStartMs = parseDateMs(`${s}T00:00:00Z`);
+  let dayEndMs = NaN;
+  if (end && !String(end).includes('T')) {
+    dayEndMs = parseDateMs(`${end}T00:00:00Z`);
+  } else {
+    const d = new Date(`${s}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    dayEndMs = d.getTime();
+  }
+  if (!Number.isFinite(dayStartMs) || !Number.isFinite(dayEndMs) || dayEndMs <= dayStartMs) return null;
+  // Keep all-day behavior primarily for PTO, but also safely for other date-only blockers.
+  if (t === 'pto' || !t) return { startMs: dayStartMs, endMs: dayEndMs };
+  return { startMs: dayStartMs, endMs: dayEndMs };
+}
+
+async function queryConflictItemsForRange({ dateProp, titleProp, typeProp }, startIsoDate, endIsoDateExclusive) {
+  const startDay = toDateOnlyISO(startIsoDate);
+  const endDayExclusive = toDateOnlyISO(endIsoDateExclusive);
+  if (!startDay || !endDayExclusive) return [];
+
+  const filters = {
+    and: [
+      { property: dateProp.name, date: { on_or_after: startDay } },
+      { property: dateProp.name, date: { before: endDayExclusive } }
+    ]
+  };
+
+  const results = await notionManager.queryDatabase(filters);
+  return results
+    .map(item => {
+      const title = item.properties[titleProp.name] || 'Untitled';
+      const dateVal = item.properties[dateProp.name];
+      const typeVal = typeProp ? item.properties[typeProp.name] : '';
+      let type = normalizeTypeName(typeVal);
+      // Fallback: infer from title when Type option names are inconsistent.
+      if (!type) {
+        const t = String(title || '').toLowerCase();
+        if (t.includes('meeting')) type = 'meeting';
+        else if (t.includes('break')) type = 'break';
+        else if (t.includes('holiday') || t.includes('pto') || t.includes('vacation')) type = 'pto';
+      }
+      const start = dateVal?.start || null;
+      const end = dateVal?.end || null;
+      return { id: item.id, title, start, end, type };
+    })
+    .filter(item => !!item.start && ['meeting', 'break', 'pto'].includes(item.type));
+}
+
+async function queryConflictItemsForDay({ dateProp, titleProp, typeProp }, isoDate) {
+  const day = toDateOnlyISO(isoDate);
+  if (!day) return [];
+  const next = new Date(day + 'T00:00:00');
+  next.setDate(next.getDate() + 1);
+  const isoNext = formatDateISO(next);
+  return queryConflictItemsForRange({ dateProp, titleProp, typeProp }, day, isoNext);
+}
+
+ipcMain.handle('create-notion-meeting', async (event, { title, date, time, durationMinutes }) => {
+  try {
+    if (!notionManager.isConfigured()) return { error: 'Notion not configured' };
+    const { dateProp, titleProp, typeProp, statusProp } = await getScheduleSchemaProps();
+    if (!dateProp || !titleProp) return { error: 'Database missing Date or Title property' };
+    let start = toDateTimeISO(date || formatDateISO(getNextBusinessDay()), time || '09:00');
+    if (!/[Z+-]/.test(start.slice(-1))) start = start + 'Z';
+    const mins = Math.max(1, Math.min(480, parseInt(durationMinutes, 10) || 60));
+    const end = addMinutesToISO(start, mins);
+
+     // Detect conflicts with existing meetings for that day (do not block creation; just report).
+    let conflict = null;
+    try {
+      const existing = await queryConflictItemsForDay({ dateProp, titleProp, typeProp }, start);
+      const newStartMs = parseDateMs(start);
+      const newEndMs = parseDateMs(end);
+      const overlaps = existing
+        .filter(m => {
+          const range = getConflictRangeMs(m);
+          if (!range) return false;
+          const sMs = range.startMs;
+          const eMs = range.endMs;
+          return rangesOverlap(newStartMs, newEndMs, sMs, eMs);
+        })
+        .sort((a, b) => {
+          const aEnd = getConflictRangeMs(a)?.endMs || -Infinity;
+          const bEnd = getConflictRangeMs(b)?.endMs || -Infinity;
+          return bEnd - aEnd;
+        });
+      if (overlaps.length) {
+        const c = overlaps[0];
+        const cEndMs = getConflictRangeMs(c)?.endMs;
+        const suggestedStartMs = isAllDayBlockType(c.type)
+          ? nextWorkingDaySameTimeMs(newStartMs)
+          : (Number.isFinite(cEndMs) ? cEndMs + 10 * 60 * 1000 : parseDateMs(addMinutesToISO(c.start, 30)));
+        const cEnd = Number.isFinite(cEndMs) ? new Date(cEndMs).toISOString().slice(0, 19) + 'Z' : (c.end || addMinutesToISO(c.start, 30));
+        conflict = {
+          type: 'meeting_overlap',
+          newMeetingTitle: (title || 'New Meeting').trim(),
+          newMeetingStart: start,
+          newMeetingEnd: end,
+          conflictingMeetingId: c.id,
+          conflictingMeetingTitle: c.title,
+          conflictingMeetingType: c.type || 'meeting',
+          conflictingMeetingEnd: cEnd,
+          suggestedStart: Number.isFinite(suggestedStartMs) ? new Date(suggestedStartMs).toISOString().slice(0, 19) + 'Z' : addMinutesToISO(cEnd, 10)
+        };
+      }
+    } catch (_) {
+      // Conflict detection is best-effort; ignore failures.
+    }
+
+    const properties = {
+      [titleProp.name]: { title: [{ text: { content: (title || 'New Meeting').trim() } }] },
+      [dateProp.name]: { date: { start, end } },
+      ...(typeProp && { [typeProp.name]: buildTypeValue(typeProp, 'Meeting') }),
+      ...(statusProp && { [statusProp.name]: { status: { name: 'Not Started' } } })
+    };
+    const page = await notionManager.createPage(properties);
+    if (conflict) {
+      conflict.newMeetingId = page.id;
+    }
+    return { success: true, page, conflict };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('resolve-notion-meeting-conflict', async (event, { meetingId }) => {
+  try {
+    if (!notionManager.isConfigured()) return { error: 'Notion not configured' };
+    if (!meetingId) return { error: 'Missing meetingId' };
+    const { dateProp, titleProp, typeProp } = await getScheduleSchemaProps();
+    if (!dateProp || !titleProp) return { error: 'Database missing Date or Title property' };
+
+    const page = await notionManager.getPage(meetingId);
+    if (!page?.properties) return { error: 'Meeting not found' };
+    const pageType = normalizeTypeName(typeProp ? page.properties[typeProp.name] : '');
+    if (isAllDayBlockType(pageType)) return { error: 'PTO blocks are fixed and cannot be auto-moved' };
+
+    const dateVal = page.properties[dateProp.name];
+    const currentStart = dateVal?.start;
+    const currentEnd = dateVal?.end;
+    if (!currentStart || !String(currentStart).includes('T')) return { error: 'Meeting has no start time to resolve' };
+
+    const durationMs = (() => {
+      const s = parseDateMs(currentStart);
+      const e = parseDateMs(currentEnd || addMinutesToISO(currentStart, 60));
+      const d = e - s;
+      return Number.isFinite(d) && d > 0 ? d : 60 * 60 * 1000;
+    })();
+
+    let desiredStartMs = parseDateMs(currentStart);
+    let desiredEndMs = desiredStartMs + durationMs;
+    let iterations = 0;
+    while (iterations++ < 30) {
+      // Keep meetings off weekends.
+      const weekday = new Date(desiredStartMs).getUTCDay();
+      if (weekday === 0 || weekday === 6) {
+        desiredStartMs = nextWorkingDaySameTimeMs(desiredStartMs);
+        desiredEndMs = desiredStartMs + durationMs;
+        continue;
+      }
+
+      const dayIso = new Date(desiredStartMs).toISOString().slice(0, 10);
+      const dayItems = await queryConflictItemsForDay({ dateProp, titleProp, typeProp }, dayIso);
+      const overlaps = dayItems.filter(m => {
+        if (m.id === meetingId) return false;
+        const range = getConflictRangeMs(m);
+        if (!range) return false;
+        const sMs = range.startMs;
+        const eMs = range.endMs;
+        return rangesOverlap(desiredStartMs, desiredEndMs, sMs, eMs);
+      });
+      if (overlaps.length === 0) break;
+
+      // If blocked by PTO, move to next working day at same time.
+      if (overlaps.some(m => isAllDayBlockType(m.type))) {
+        desiredStartMs = nextWorkingDaySameTimeMs(desiredStartMs);
+        desiredEndMs = desiredStartMs + durationMs;
+        continue;
+      }
+      // Push after the latest conflicting end + 10 minutes.
+      let maxEndMs = -Infinity;
+      for (const m of overlaps) {
+        const eMs = getConflictRangeMs(m)?.endMs;
+        if (eMs > maxEndMs) maxEndMs = eMs;
+      }
+      desiredStartMs = maxEndMs + 10 * 60 * 1000;
+      desiredEndMs = desiredStartMs + durationMs;
+    }
+
+    if (!Number.isFinite(desiredStartMs) || !Number.isFinite(desiredEndMs)) {
+      return { error: 'Failed to compute resolved time' };
+    }
+
+    const newStartIso = new Date(desiredStartMs).toISOString().slice(0, 19) + 'Z';
+    const newEndIso = new Date(desiredEndMs).toISOString().slice(0, 19) + 'Z';
+
+    const updateProps = {
+      [dateProp.name]: { date: { start: newStartIso, end: newEndIso } }
+    };
+    const updated = await notionManager.updatePage(meetingId, updateProps);
+    return { success: true, meetingId, newStart: newStartIso, newEnd: newEndIso, page: updated };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('create-notion-task', async (event, { title }) => {
+  try {
+    if (!notionManager.isConfigured()) return { error: 'Notion not configured' };
+    const { dateProp, titleProp, typeProp, statusProp } = await getScheduleSchemaProps();
+    if (!dateProp || !titleProp) return { error: 'Database missing Date or Title property' };
+    const targetDate = getNextBusinessDay();
+    const start = await findNextAvailableSlot(targetDate, dateProp, titleProp, typeProp, statusProp);
+    const end = addMinutesToISO(start, 30);
+    const properties = {
+      [titleProp.name]: { title: [{ text: { content: (title || 'New Task').trim() } }] },
+      [dateProp.name]: { date: { start, end } },
+      ...(typeProp && { [typeProp.name]: buildTypeValue(typeProp, 'Task') }),
+      ...(statusProp && { [statusProp.name]: { status: { name: 'Needs Review' } } })
+    };
+    const page = await notionManager.createPage(properties);
+    return { success: true, page };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('bump-task', async (event, { taskId }) => {
+  try {
+    if (!notionManager.isConfigured()) return { error: 'Notion not configured' };
+    if (!taskId) return { error: 'Missing taskId' };
+    const { dateProp, titleProp, typeProp, statusProp } = await getScheduleSchemaProps();
+    if (!dateProp || !titleProp) return { error: 'Database missing Date or Title property' };
+
+    // Fetch the current task so we know its duration
+    const page = await notionManager.getPage(taskId);
+    if (!page) return { error: 'Task not found' };
+    const title = page.properties[titleProp.name] || 'Untitled';
+    const dateVal = page.properties[dateProp.name];
+    let durationMs = TASK_SLOT_DURATION_MS; // default 30 min
+    if (dateVal && dateVal.start && dateVal.end) {
+      const diff = new Date(dateVal.end).getTime() - new Date(dateVal.start).getTime();
+      if (diff > 0) durationMs = diff;
+    }
+    const estimatedMin = page.properties['Estimated Mintues'];
+    if (estimatedMin && estimatedMin > 0) {
+      durationMs = estimatedMin * 60 * 1000;
+    }
+
+    // Find next open slot TODAY after the current time
+    const now = new Date();
+    const targetDate = new Date(now);
+    // If it's past work hours or a weekend, bump to next business day
+    const day = targetDate.getDay();
+    const hour = targetDate.getHours() + targetDate.getMinutes() / 60;
+    if (day === 0 || day === 6 || hour >= WORK_WEEK_END_HOUR + WORK_WEEK_END_MIN / 60) {
+      targetDate.setDate(targetDate.getDate() + 1);
+      while (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
+        targetDate.setDate(targetDate.getDate() + 1);
+      }
+    }
+
+    // Build busy ranges for the target day (same logic as findNextAvailableSlot)
+    const isoDate = formatDateISO(targetDate);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const isoNext = formatDateISO(nextDay);
+    const filter = {
+      and: [
+        { property: dateProp.name, date: { on_or_after: isoDate } },
+        { property: dateProp.name, date: { before: isoNext } }
+      ]
+    };
+    const items = await notionManager.queryDatabase(filter, [{ property: dateProp.name, direction: 'ascending' }]);
+    const busyRanges = [];
+    for (const item of items) {
+      if (item.id === taskId) continue; // exclude the task being bumped
+      if (statusProp) {
+        const status = item.properties[statusProp.id] || item.properties[statusProp.name];
+        if (isSlotFreeStatus(status)) continue;
+      }
+      const dv = item.properties[dateProp.id] || item.properties[dateProp.name];
+      if (!dv || !dv.start) continue;
+      const startMs = dv.start.includes('T') ? new Date(dv.start).getTime() : new Date(dv.start + 'T12:00:00').getTime();
+      const endMs = dv.end && dv.end.includes('T') ? new Date(dv.end).getTime() : startMs + 60 * 60 * 1000;
+      busyRanges.push({ start: startMs, end: endMs });
+    }
+    busyRanges.sort((a, b) => a.start - b.start);
+
+    const dayStart = new Date(targetDate);
+    dayStart.setHours(WORK_WEEK_START_HOUR, WORK_WEEK_START_MIN, 0, 0);
+    const dayEnd = new Date(targetDate);
+    dayEnd.setHours(WORK_WEEK_END_HOUR, WORK_WEEK_END_MIN, 0, 0);
+    const dayEndMs = dayEnd.getTime();
+
+    // Start searching from now (rounded up to next 15-min granularity), minimum 5 min from now
+    let candidate = Math.max(dayStart.getTime(), Date.now() + 5 * 60 * 1000);
+    candidate = Math.ceil(candidate / SLOT_GRANULARITY_MS) * SLOT_GRANULARITY_MS;
+
+    let foundSlot = null;
+    while (candidate + durationMs <= dayEndMs) {
+      const candidateEnd = candidate + durationMs;
+      let overlaps = false;
+      for (const { start, end } of busyRanges) {
+        if (candidateEnd <= start) break;
+        if (candidate < end) {
+          overlaps = true;
+          candidate = Math.ceil(end / SLOT_GRANULARITY_MS) * SLOT_GRANULARITY_MS;
+          break;
+        }
+      }
+      if (!overlaps) {
+        foundSlot = { start: candidate, end: candidate + durationMs };
+        break;
+      }
+    }
+
+    if (!foundSlot) {
+      return { error: 'No open slot available today' };
+    }
+
+    // Update Notion
+    const newStart = new Date(foundSlot.start).toISOString().slice(0, 19) + 'Z';
+    const newEnd = new Date(foundSlot.end).toISOString().slice(0, 19) + 'Z';
+    const updateProps = {};
+    updateProps[dateProp.name] = { type: 'date', date: { start: newStart, end: newEnd } };
+    await notionManager.updatePage(taskId, updateProps);
+
+    // Register bump so the optimizer won't move it back
+    scheduleOptimizer.registerBump(taskId);
+
+    const newTimeStr = formatTimeEST(newStart);
+    console.log(`[Bump] "${title}" bumped to ${newTimeStr}`);
+
+    // Refresh schedule in sidebar
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('schedule-refresh');
+    }
+
+    return { success: true, title, newTime: newTimeStr };
+  } catch (err) {
+    console.error('[Bump] Error:', err.message);
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('create-notion-project', async (event, { title }) => {
+  try {
+    if (!notionManager.isConfigured()) return { error: 'Notion not configured' };
+    const { dateProp, titleProp, typeProp, statusProp } = await getScheduleSchemaProps();
+    if (!dateProp || !titleProp) return { error: 'Database missing Date or Title property' };
+    const today = getNextBusinessDay();
+    const dateOnly = formatDateISO(today);
+    const properties = {
+      [titleProp.name]: { title: [{ text: { content: (title || 'New Project').trim() } }] },
+      [dateProp.name]: { date: { start: dateOnly } },
+      ...(typeProp && { [typeProp.name]: buildTypeValue(typeProp, 'Project') }),
+      ...(statusProp && { [statusProp.name]: { status: { name: 'Not Started' } } })
+    };
+    const page = await notionManager.createPage(properties);
+    return { success: true, page };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
 
 ipcMain.handle('get-upcoming-schedule', async () => {
   try {
     if (!notionManager.isConfigured()) {
-      return { error: 'Notion not configured', date: null, dateLabel: '', meetings: [], tasks: [], projects: [] };
+      return { error: 'Notion not configured', date: null, dateLabel: '', meetings: [], tasks: [], projects: [], conflicts: { count: 0, pairs: [], meetingOptions: [] } };
     }
     const schema = await notionManager.getDatabaseSchema();
     const dateProp = schema.properties.find(p => p.type === 'date');
@@ -1205,29 +1829,38 @@ ipcMain.handle('get-upcoming-schedule', async () => {
       const nameMatch = p.name === 'project_ref' || p.name === 'Project' || p.name.toLowerCase().replace(/\s+/g, '_').includes('project');
       return nameMatch && (p.type === 'relation' || p.type === 'select' || p.type === 'multi_select');
     });
-    const meetingRefProp = schema.properties.find(p => {
+    // Find the relation property that links tasks back to meetings.
+    // First try name-based matching, then fall back to any self-relation that isn't the project ref.
+    const relationProps = schema.properties.filter(p => p.type === 'relation');
+    console.log('[Schema] Relation properties:', relationProps.map(p => p.name).join(', ') || '(none)');
+    let meetingRefProp = schema.properties.find(p => {
       if (typeof p.name !== 'string') return false;
       const n = p.name.toLowerCase().replace(/\s+/g, ' ');
-      const nameMatch = n.includes('meeting') || n.includes('action item') || n === 'parent' || n === 'related meeting';
+      const nameMatch = n.includes('meeting') || n.includes('action item') || n === 'parent' || n === 'related meeting' || n === 'relation';
       return nameMatch && (p.type === 'relation' || p.type === 'select' || p.type === 'multi_select');
     });
+    // Fallback: if no name match, pick the first relation prop that isn't the project ref
+    if (!meetingRefProp && relationProps.length > 0) {
+      const projectRefId = projectRefProp ? projectRefProp.id : null;
+      meetingRefProp = relationProps.find(p => p.id !== projectRefId) || null;
+      if (meetingRefProp) console.log('[Schema] Meeting ref fallback to relation:', meetingRefProp.name);
+    }
     if (!dateProp || !titleProp) {
-      return { error: 'Database missing Date or Title property', date: null, dateLabel: '', meetings: [], tasks: [], projects: [] };
+      return { error: 'Database missing Date or Title property', date: null, dateLabel: '', meetings: [], tasks: [], projects: [], conflicts: { count: 0, pairs: [], meetingOptions: [] } };
     }
     const targetDate = getNextBusinessDay();
     const isoDate = formatDateISO(targetDate);
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
     const isoNext = formatDateISO(nextDay);
-    const dateLabel = targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    const dateLabel = formatDateLabelEST(isoDate);
     const statusPropName = statusProp ? statusProp.name : 'Status';
     const baseFilter = {
       and: [
         { property: dateProp.name, date: { on_or_after: isoDate } },
         { property: dateProp.name, date: { before: isoNext } },
         { property: statusPropName, status: { does_not_equal: 'Processed' } },
-        { property: statusPropName, status: { does_not_equal: 'Resolved' } },
-        { property: statusPropName, status: { does_not_equal: 'Not Started' } }
+        { property: statusPropName, status: { does_not_equal: 'Resolved' } }
       ]
     };
     const results = await notionManager.queryDatabase(baseFilter);
@@ -1241,16 +1874,21 @@ ipcMain.handle('get-upcoming-schedule', async () => {
       const typeLower = type.toLowerCase();
       const dateVal = item.properties[dateProp.name];
       const sortKey = (dateVal && dateVal.start) || '';
+      const startISO = dateVal?.start || null;
+      const endISO = dateVal?.end || null;
       let timeStr = '';
       if (dateVal && dateVal.start && dateVal.start.includes('T')) {
         try {
-          const t = new Date(dateVal.start);
-          timeStr = t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          timeStr = formatTimeEST(dateVal.start);
         } catch (_) {}
       }
       if (typeLower === 'meeting') {
-        meetings.push({ id: item.id, title, time: timeStr, _sort: sortKey });
-      } else if (typeLower === 'task') {
+        meetings.push({ id: item.id, title, time: timeStr, start: startISO, end: endISO, _sort: sortKey });
+      } else if (typeLower === 'project' || typeLower === 'pto') {
+        // Explicitly excluded from the Tasks list (they have their own sections / are all-day blocks)
+        continue;
+      } else {
+        // Tasks list shows everything except Meetings, Projects, and PTO
         tasks.push({ id: item.id, title, time: timeStr, _sort: sortKey });
       }
     }
@@ -1278,9 +1916,9 @@ ipcMain.handle('get-upcoming-schedule', async () => {
           if (dv && dv.start) {
             sortKey = dv.start;
             if (dv.start.includes('T')) {
-              try { ts = new Date(dv.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch (_) {}
+              try { ts = formatTimeEST(dv.start); } catch (_) {}
             } else {
-              try { ts = new Date(dv.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (_) {}
+              try { ts = formatDateLabelEST(dv.start).replace(/^[A-Za-z]+,\s*/, ''); } catch (_) {}
             }
           }
           return { title: t, time: ts, _sort: sortKey || 'z' };
@@ -1292,7 +1930,7 @@ ipcMain.handle('get-upcoming-schedule', async () => {
 
     const meetingsOut = [];
     for (const m of meetings) {
-      const entry = { id: m.id, title: m.title, time: m.time };
+      const entry = { id: m.id, title: m.title, time: m.time, start: m.start, end: m.end };
       entry.actionItems = [];
       if (meetingRefProp && m.id) {
         if (meetingRefProp.type === 'relation') {
@@ -1300,7 +1938,9 @@ ipcMain.handle('get-upcoming-schedule', async () => {
             and: [
               taskTypeFilter,
               { property: meetingRefProp.name, relation: { contains: m.id } },
-              { property: dateProp.name, date: { on_or_after: recentStartISO } }
+              { property: dateProp.name, date: { on_or_after: recentStartISO } },
+              { property: statusPropName, status: { does_not_equal: 'Processed' } },
+              { property: statusPropName, status: { does_not_equal: 'Resolved' } }
             ]
           };
           const raw = await notionManager.queryDatabase(filter, recentSorts);
@@ -1316,7 +1956,9 @@ ipcMain.handle('get-upcoming-schedule', async () => {
             and: [
               taskTypeFilter,
               refFilter,
-              { property: dateProp.name, date: { on_or_after: recentStartISO } }
+              { property: dateProp.name, date: { on_or_after: recentStartISO } },
+              { property: statusPropName, status: { does_not_equal: 'Processed' } },
+              { property: statusPropName, status: { does_not_equal: 'Resolved' } }
             ]
           };
           const raw = await notionManager.queryDatabase(filter, recentSorts);
@@ -1325,6 +1967,77 @@ ipcMain.handle('get-upcoming-schedule', async () => {
       }
       meetingsOut.push(entry);
     }
+
+    // Build conflict metadata for overlapping Meetings/Breaks/PTO blocks.
+    // IMPORTANT: use a dedicated query so conflicts are not hidden by schedule display filters.
+    // Scan forward window so future conflicts (not just the current schedule day) still trigger banner.
+    const conflictWindowStart = isoDate;
+    const conflictWindowEndDate = new Date(targetDate);
+    conflictWindowEndDate.setDate(conflictWindowEndDate.getDate() + 14);
+    const conflictWindowEnd = formatDateISO(conflictWindowEndDate);
+    const allConflictItems = await queryConflictItemsForRange(
+      { dateProp, titleProp, typeProp },
+      conflictWindowStart,
+      conflictWindowEnd
+    );
+    const timedBlocks = allConflictItems
+      .map(item => {
+        const range = getConflictRangeMs(item);
+        if (!range) return null;
+        let time = '';
+        if (item.start && String(item.start).includes('T')) {
+          try { time = formatTimeEST(item.start); } catch (_) {}
+        }
+        return { ...item, time, _startMs: range.startMs, _endMs: range.endMs };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a._startMs - b._startMs);
+
+    const conflictPairs = [];
+    const conflictMap = new Map(); // id -> { latestEndMs, conflictsWith: Set<string>, title, time, type }
+    for (let i = 0; i < timedBlocks.length; i++) {
+      const a = timedBlocks[i];
+      for (let j = i + 1; j < timedBlocks.length; j++) {
+        const b = timedBlocks[j];
+        if (b._startMs >= a._endMs) break;
+        if (!rangesOverlap(a._startMs, a._endMs, b._startMs, b._endMs)) continue;
+        conflictPairs.push({
+          aId: a.id, aTitle: a.title, aType: a.type, aStart: a.start, aEnd: a.end || addMinutesToISO(a.start, 60),
+          bId: b.id, bTitle: b.title, bType: b.type, bStart: b.start, bEnd: b.end || addMinutesToISO(b.start, 60)
+        });
+
+        const aPrev = conflictMap.get(a.id) || { id: a.id, title: a.title, time: a.time, type: a.type, latestEndMs: -Infinity, conflictsWith: new Set() };
+        const bPrev = conflictMap.get(b.id) || { id: b.id, title: b.title, time: b.time, type: b.type, latestEndMs: -Infinity, conflictsWith: new Set() };
+        aPrev.latestEndMs = Math.max(aPrev.latestEndMs, b._endMs);
+        bPrev.latestEndMs = Math.max(bPrev.latestEndMs, a._endMs);
+        aPrev.conflictsWith.add(b.id);
+        bPrev.conflictsWith.add(a.id);
+        conflictMap.set(a.id, aPrev);
+        conflictMap.set(b.id, bPrev);
+      }
+    }
+
+    const meetingOptions = Array.from(conflictMap.values())
+      .filter(m => !isAllDayBlockType(m.type))
+      .map(m => {
+      const suggestedStart = Number.isFinite(m.latestEndMs)
+        ? new Date(m.latestEndMs + 10 * 60 * 1000).toISOString().slice(0, 19) + 'Z'
+        : null;
+      return {
+        id: m.id,
+        title: m.title,
+        time: m.time,
+        type: m.type,
+        conflictsWith: Array.from(m.conflictsWith),
+        suggestedStart
+      };
+    });
+
+    sendArcDebug({
+      type: 'status',
+      message: `Conflict scan: ${conflictPairs.length} overlap(s), ${meetingOptions.length} resolvable`,
+      detail: `${conflictWindowStart} to ${conflictWindowEnd}`
+    });
 
     const projectItems = [];
     const projectTypeFilter = typeProp
@@ -1353,9 +2066,9 @@ ipcMain.handle('get-upcoming-schedule', async () => {
           if (dv && dv.start) {
             sortKey = dv.start;
             if (dv.start.includes('T')) {
-              try { ts = new Date(dv.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch (_) {}
+              try { ts = formatTimeEST(dv.start); } catch (_) {}
             } else {
-              try { ts = new Date(dv.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (_) {}
+              try { ts = formatDateLabelEST(dv.start).replace(/^[A-Za-z]+,\s*/, ''); } catch (_) {}
             }
           }
           return { title: t, time: ts, _sort: sortKey || 'z' };
@@ -1366,13 +2079,18 @@ ipcMain.handle('get-upcoming-schedule', async () => {
     }
 
     const projectRefExclude = new Set(['Knowledge Vault', "1:1's with Bruce", '1:1 with Bruce', 'Tech Services']);
+    const statusExcludeFilter = [
+      { property: statusPropName, status: { does_not_equal: 'Processed' } },
+      { property: statusPropName, status: { does_not_equal: 'Resolved' } }
+    ];
     if (projectRefProp && projectRefProp.type === 'relation') {
       for (const proj of projectItems) {
         const projectFilter = {
           and: [
             taskTypeFilter,
             { property: projectRefProp.name, relation: { contains: proj.id } },
-            { property: dateProp.name, date: { on_or_after: recentStartISO } }
+            { property: dateProp.name, date: { on_or_after: recentStartISO } },
+            ...statusExcludeFilter
           ]
         };
         const projectTasksRaw = await notionManager.queryDatabase(projectFilter, recentSorts);
@@ -1395,7 +2113,8 @@ ipcMain.handle('get-upcoming-schedule', async () => {
             and: [
               taskTypeFilter,
               { or: orFilters },
-              { property: dateProp.name, date: { on_or_after: recentStartISO } }
+              { property: dateProp.name, date: { on_or_after: recentStartISO } },
+              ...statusExcludeFilter
             ]
           };
           const projectTasksRaw = await notionManager.queryDatabase(projectFilter, recentSorts);
@@ -1408,12 +2127,82 @@ ipcMain.handle('get-upcoming-schedule', async () => {
         projects.push({ title: proj.title, tasks: [] });
       }
     }
-    return { date: isoDate, dateLabel, meetings: meetingsOut, tasks: tasksOut, projects, error: null };
+    // ── Completed this week ──────────────────────────────────────────
+    // Items with Status = "Processed" whose date OR last-edited time falls within Mon–Sun of the current week.
+    const nowLocal = new Date();
+    const dayOfWeekLocal = nowLocal.getDay(); // 0=Sun..6=Sat
+    const mondayOffset = dayOfWeekLocal === 0 ? -6 : 1 - dayOfWeekLocal;
+    const weekStart = new Date(nowLocal);
+    weekStart.setDate(weekStart.getDate() + mondayOffset);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7); // Sunday end
+
+    // Use local-time components for the ISO date string (Notion date filters are TZ-naive)
+    const pad2 = n => String(n).padStart(2, '0');
+    const weekStartISO = `${weekStart.getFullYear()}-${pad2(weekStart.getMonth() + 1)}-${pad2(weekStart.getDate())}`;
+    const weekEndISO = `${weekEnd.getFullYear()}-${pad2(weekEnd.getMonth() + 1)}-${pad2(weekEnd.getDate())}`;
+
+    // Two separate queries to stay within Notion's 2-level nesting limit, then merge & deduplicate.
+    const completedByDateFilter = {
+      and: [
+        { property: statusPropName, status: { equals: 'Processed' } },
+        { property: dateProp.name, date: { on_or_after: weekStartISO } },
+        { property: dateProp.name, date: { before: weekEndISO } }
+      ]
+    };
+    const completedByEditFilter = {
+      and: [
+        { property: statusPropName, status: { equals: 'Processed' } },
+        { timestamp: 'last_edited_time', last_edited_time: { on_or_after: weekStartISO } },
+        { timestamp: 'last_edited_time', last_edited_time: { before: weekEndISO } }
+      ]
+    };
+    const [completedByDate, completedByEdit] = await Promise.all([
+      notionManager.queryDatabase(completedByDateFilter, [{ property: dateProp.name, direction: 'descending' }]),
+      notionManager.queryDatabase(completedByEditFilter, [{ property: dateProp.name, direction: 'descending' }])
+    ]);
+    const seenIds = new Set();
+    const completedItems = [];
+    for (const item of [...completedByDate, ...completedByEdit]) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        completedItems.push(item);
+      }
+    }
+    const excludeTypes = new Set(['pto', 'break']);
+    const completed = completedItems
+      .filter(item => {
+        const typeRaw = item.properties[typePropName] || '';
+        const typeLower = (typeof typeRaw === 'string' ? typeRaw : (typeRaw?.name ?? '')).trim().toLowerCase();
+        return !excludeTypes.has(typeLower);
+      })
+      .map(item => {
+        const title = item.properties[titleProp.name] || 'Untitled';
+        const typeRaw = item.properties[typePropName] || '';
+        const type = (typeof typeRaw === 'string' ? typeRaw : (typeRaw?.name ?? '')).trim().toLowerCase();
+        return { title, type };
+      });
+
+    return {
+      date: isoDate,
+      dateLabel,
+      meetings: meetingsOut,
+      tasks: tasksOut,
+      projects,
+      completed,
+      conflicts: {
+        count: conflictPairs.length,
+        pairs: conflictPairs,
+        meetingOptions
+      },
+      error: null
+    };
   } catch (err) {
     const isNetworkError = /fetch failed|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|network/i.test(err.message || '');
     const detail = isNetworkError ? 'Network unreachable. Use ↻ to retry.' : err.message;
     sendArcDebug({ type: 'error', message: 'Schedule fetch failed', detail });
-    return { error: err.message, date: null, dateLabel: '', meetings: [], tasks: [], projects: [] };
+    return { error: err.message, date: null, dateLabel: '', meetings: [], tasks: [], projects: [], conflicts: { count: 0, pairs: [], meetingOptions: [] } };
   }
 });
 

@@ -27,14 +27,7 @@ const pitchVal = document.getElementById('pitchVal');
 const volumeVal = document.getElementById('volumeVal');
 const testVoice = document.getElementById('testVoice');
 const panel = document.getElementById('panel');
-const debugToggle = document.getElementById('debugToggle');
-const debugPanelEl = document.getElementById('debug-panel');
 const messagesWrap = document.getElementById('messages-wrap');
-const debugLog = document.getElementById('debug-log');
-const debugLastStatus = document.getElementById('debug-last-status');
-const debugLastError = document.getElementById('debug-last-error');
-const debugCopy = document.getElementById('debug-copy');
-const debugClear = document.getElementById('debug-clear');
 const scheduleDateEl = document.getElementById('schedule-date');
 const scheduleMeetingsEl = document.getElementById('schedule-meetings');
 const scheduleTasksEl = document.getElementById('schedule-tasks');
@@ -43,15 +36,118 @@ const scheduleTasksWrap = document.getElementById('schedule-tasks-wrap');
 const scheduleProjectsSection = document.getElementById('schedule-projects-section');
 const scheduleProjectsWrap = document.getElementById('schedule-projects-wrap');
 const scheduleProjectsEl = document.getElementById('schedule-projects');
+const scheduleCompletedSection = document.getElementById('schedule-completed-section');
+const scheduleCompletedEl = document.getElementById('schedule-completed');
 const scheduleEmptyEl = document.getElementById('schedule-empty');
 const scheduleRefreshBtn = document.getElementById('schedule-refresh-btn');
 const scheduleUpcomingWrap = document.getElementById('schedule-upcoming-wrap');
 const scheduleUpcomingEl = document.getElementById('schedule-upcoming');
-const arcPanel = document.getElementById('arc-panel');
-const arcPanelHeader = document.getElementById('arc-panel-header');
+const conflictBannerEl = document.getElementById('conflict-banner');
+const conflictBannerDetailEl = document.getElementById('conflict-banner-detail');
+const conflictResolveBtn = document.getElementById('conflict-resolve-btn');
+const conflictMeetingSelect = document.getElementById('conflict-meeting-select');
+const isArcChatEnabled = Boolean(input && sendBtn && messages && messagesWrap);
 
-if (arcPanelHeader && arcPanel) {
-  arcPanelHeader.addEventListener('click', () => arcPanel.classList.toggle('collapsed'));
+let activeConflictState = null;
+let preferredConflictMeetingId = null;
+const APP_TIME_ZONE = 'America/New_York';
+
+function formatTimeFromISO(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-US', { timeZone: APP_TIME_ZONE, hour: 'numeric', minute: '2-digit' });
+  } catch (_) {
+    return '';
+  }
+}
+
+function hideMeetingConflictBanner() {
+  activeConflictState = null;
+  if (!conflictBannerEl) return;
+  conflictBannerEl.classList.add('hidden');
+}
+
+function showMeetingConflictBanner(conflicts) {
+  if (!conflictBannerEl || !conflictBannerDetailEl || !conflictResolveBtn || !conflictMeetingSelect) return;
+  const meetingOptions = conflicts?.meetingOptions || [];
+  if (!meetingOptions.length) {
+    conflictBannerEl.classList.add('hidden');
+    return;
+  }
+  activeConflictState = conflicts;
+
+  conflictMeetingSelect.innerHTML = meetingOptions
+    .map(m => {
+      const typeRaw = String(m.type || '').toLowerCase();
+      const typeLabel = m.type ? `[${typeRaw.toUpperCase()}] ` : '';
+      const label = m.time ? `${typeLabel}${m.time} — ${m.title}` : `${typeLabel}${m.title}`;
+      return `<option value="${escapeHtml(m.id)}">${escapeHtml(label)}</option>`;
+    })
+    .join('');
+
+  if (preferredConflictMeetingId && meetingOptions.some(m => m.id === preferredConflictMeetingId)) {
+    conflictMeetingSelect.value = preferredConflictMeetingId;
+  }
+  preferredConflictMeetingId = null;
+
+  const selected = meetingOptions.find(m => m.id === conflictMeetingSelect.value) || meetingOptions[0];
+  const suggested = selected?.suggestedStart ? formatTimeFromISO(selected.suggestedStart) : '';
+  const total = conflicts?.count || 0;
+  conflictBannerDetailEl.textContent = suggested
+    ? `${total} overlap${total === 1 ? '' : 's'} found. Move “${selected.title}” to ${suggested}.`
+    : `${total} overlap${total === 1 ? '' : 's'} found. Select a meeting and resolve.`;
+  conflictResolveBtn.disabled = false;
+  conflictResolveBtn.textContent = 'Resolve';
+  conflictBannerEl.classList.remove('hidden');
+}
+
+async function resolveActiveMeetingConflict() {
+  if (!activeConflictState?.meetingOptions?.length) return;
+  if (!window.electronAPI.resolveNotionMeetingConflict) return;
+  if (!conflictResolveBtn || !conflictMeetingSelect) return;
+  const meetingId = conflictMeetingSelect.value;
+  if (!meetingId) return;
+  try {
+    conflictResolveBtn.disabled = true;
+    conflictResolveBtn.textContent = 'Resolving…';
+    const res = await window.electronAPI.resolveNotionMeetingConflict({ meetingId });
+    if (res?.error) {
+      conflictResolveBtn.disabled = false;
+      conflictResolveBtn.textContent = 'Resolve';
+      if (conflictBannerDetailEl) {
+        conflictBannerDetailEl.textContent = `Couldn’t resolve selected meeting: ${res.error}`;
+      }
+      return;
+    }
+    preferredConflictMeetingId = null;
+    await loadUpcomingSchedule();
+  } catch (e) {
+    conflictResolveBtn.disabled = false;
+    conflictResolveBtn.textContent = 'Resolve';
+    if (conflictBannerDetailEl) conflictBannerDetailEl.textContent = `Couldn’t resolve: ${e?.message || 'Unknown error'}`;
+  }
+}
+
+if (conflictResolveBtn) {
+  conflictResolveBtn.addEventListener('click', () => resolveActiveMeetingConflict());
+}
+if (conflictMeetingSelect) {
+  conflictMeetingSelect.addEventListener('change', () => {
+    if (!activeConflictState?.meetingOptions?.length || !conflictBannerDetailEl) return;
+    const selected = activeConflictState.meetingOptions.find(m => m.id === conflictMeetingSelect.value);
+    if (!selected) return;
+    const suggested = selected?.suggestedStart ? formatTimeFromISO(selected.suggestedStart) : '';
+    const total = activeConflictState?.count || 0;
+    conflictBannerDetailEl.textContent = suggested
+      ? `${total} overlap${total === 1 ? '' : 's'} found. Move “${selected.title}” to ${suggested}.`
+      : `${total} overlap${total === 1 ? '' : 's'} found. Select a meeting and resolve.`;
+  });
+}
+
+function sendAssistantMessage(text, history = []) {
+  if (!isArcChatEnabled) return;
+  window.electronAPI.sendMessage(text, history);
 }
 
 function renderUpcomingEvents(events) {
@@ -63,11 +159,19 @@ function renderUpcomingEvents(events) {
   scheduleUpcomingWrap.classList.remove('hidden');
   scheduleUpcomingEl.innerHTML = events.map(e => {
     const t = (e.type || '').toLowerCase();
-    const label = t === 'meeting' ? 'Meeting' : (t === 'task' ? 'Task' : 'Event');
-    const meta = (e.inProgress || e.minutesUntil === 0) ? `Now · ${e.timeStr}` : `in ${e.minutesUntil} min · ${e.timeStr}`;
-    return `<li><span class="schedule-upcoming-time">${escapeHtml(e.timeStr)}</span>${escapeHtml(e.title)}<span class="schedule-upcoming-meta">${label} — ${meta}</span></li>`;
+    const status = (e.inProgress || e.minutesUntil === 0) ? 'Now' : `in ${e.minutesUntil}m`;
+    const sectionClass = t === 'meeting' ? 'upcoming-meeting' : (t === 'task' ? 'upcoming-task' : 'upcoming-event');
+    return `<li class="${sectionClass}"><span class="upcoming-status">${status}</span><span class="upcoming-label">${escapeHtml(e.title)}</span><span class="upcoming-time">${escapeHtml(e.timeStr)}</span></li>`;
   }).join('');
 }
+
+/**
+ * Last highlight events received from the event notifier.
+ * Each entry carries { id, startTime, endTime, ... } so we can keep
+ * items highlighted for their full start-to-end duration even after
+ * the schedule DOM is rebuilt by the poll.
+ */
+let lastHighlightEvents = [];
 
 /** Highlight schedule items that are in the upcoming-events list (by data-id). Clears highlight when events is empty. */
 function highlightScheduleUpcoming(events) {
@@ -88,6 +192,26 @@ function highlightScheduleUpcoming(events) {
   }
 }
 
+/**
+ * Re-evaluate which cached highlight events are still active (upcoming or
+ * in-progress based on their start/end times) and apply highlights.
+ * Called after every schedule DOM rebuild so highlights survive re-renders.
+ */
+function reapplyActiveHighlights() {
+  if (!lastHighlightEvents.length) return;
+  const now = new Date();
+  const stillActive = lastHighlightEvents.filter(e => {
+    // Keep if in-progress (between start and end)
+    const start = e.startTime ? new Date(e.startTime) : null;
+    const end = e.endTime ? new Date(e.endTime) : null;
+    if (start && end) return now <= end && now >= new Date(start.getTime() - 15 * 60000); // upcoming (15 min) or in-progress
+    if (start) return now >= new Date(start.getTime() - 15 * 60000); // upcoming, no end known
+    return false;
+  });
+  lastHighlightEvents = stillActive;
+  highlightScheduleUpcoming(stillActive);
+}
+
 async function loadUpcomingSchedule() {
   if (!scheduleDateEl || !scheduleMeetingsEl || !scheduleTasksEl || !scheduleEmptyEl) return;
   if (!window.electronAPI.getUpcomingSchedule) return;
@@ -104,6 +228,8 @@ async function loadUpcomingSchedule() {
         if (scheduleMeetingsWrap) scheduleMeetingsWrap.classList.add('hidden');
         if (scheduleTasksWrap) scheduleTasksWrap.classList.add('hidden');
         if (scheduleProjectsSection) scheduleProjectsSection.classList.add('hidden');
+        if (scheduleCompletedSection) scheduleCompletedSection.classList.add('hidden');
+        hideMeetingConflictBanner();
       }
       return;
     }
@@ -115,15 +241,59 @@ async function loadUpcomingSchedule() {
     if (meetingsList.length === 0) {
       scheduleMeetingsEl.innerHTML = '<li class="schedule-none">None</li>';
     } else {
+      const nowMs = Date.now();
       scheduleMeetingsEl.innerHTML = meetingsList.map(m => {
         const actionItems = m.actionItems || [];
         const actionList = actionItems.length === 0
           ? '<li class="schedule-none">None</li>'
-          : actionItems.map(a => `<li>${a.time ? `<span class="schedule-time">${a.time}</span>` : ''}${escapeHtml(a.title)}</li>`).join('');
-        return `<div class="schedule-meeting-group"${m.id ? ` data-id="${escapeHtml(m.id)}"` : ''}><div class="schedule-meeting-title">${m.time ? `<span class="schedule-time">${m.time}</span>` : ''}${escapeHtml(m.title)}</div><ul class="schedule-meeting-action-items">${actionList}</ul></div>`;
+          : actionItems.map(a => `<li>${escapeHtml(a.title)}</li>`).join('');
+        // Compute "In Xm" / "Now" badge
+        let badge = '';
+        if (m.start && String(m.start).includes('T')) {
+          const startMs = new Date(m.start).getTime();
+          const endMs = (m.end && String(m.end).includes('T')) ? new Date(m.end).getTime() : startMs + 3600000;
+          const minsUntil = Math.round((startMs - nowMs) / 60000);
+          if (nowMs >= startMs && nowMs <= endMs) {
+            badge = '<span class="meeting-badge meeting-badge-now">Now</span>';
+          } else if (minsUntil > 0 && minsUntil <= 30) {
+            badge = `<span class="meeting-badge">In ${minsUntil}m</span>`;
+          }
+        }
+        // Highlight if in-progress or upcoming within 15 min
+        let highlightClass = '';
+        if (m.start && String(m.start).includes('T')) {
+          const sMs = new Date(m.start).getTime();
+          const eMs = (m.end && String(m.end).includes('T')) ? new Date(m.end).getTime() : sMs + 3600000;
+          if (nowMs >= sMs && nowMs <= eMs) highlightClass = ' schedule-item-upcoming';
+        }
+        const meetingTimeHtml = `<span class="schedule-time-right">${m.time ? escapeHtml(m.time) : ''}${badge}</span>`;
+        const meetingTitleHtml = `<span class="schedule-title">${escapeHtml(m.title)}</span>`;
+        return `<div class="schedule-meeting-group${highlightClass}"${m.id ? ` data-id="${escapeHtml(m.id)}"` : ''}><div class="schedule-meeting-title">${meetingTitleHtml}${meetingTimeHtml}</div><ul class="schedule-meeting-action-items">${actionList}</ul></div>`;
       }).join('');
     }
-    scheduleTasksEl.innerHTML = (data.tasks || []).map(t => `<li${t.id ? ` data-id="${escapeHtml(t.id)}"` : ''}>${t.time ? `<span class="schedule-time">${t.time}</span>` : ''}${escapeHtml(t.title)}</li>`).join('') || '<li class="schedule-none">None</li>';
+    scheduleTasksEl.innerHTML = (data.tasks || []).map(t => {
+      const bumpBtn = t.id ? `<button type="button" class="task-bump-btn" data-task-id="${escapeHtml(t.id)}" title="Bump to next open slot">↷</button>` : '';
+      const timeHtml = `<span class="schedule-time">${t.time ? escapeHtml(t.time) : ''}</span>`;
+      const titleHtml = `<span class="schedule-title">${escapeHtml(t.title)}</span>`;
+      return `<li${t.id ? ` data-id="${escapeHtml(t.id)}"` : ''}>${timeHtml}${titleHtml}${bumpBtn}</li>`;
+    }).join('') || '<li class="schedule-none">None</li>';
+    // Attach bump-button click handlers
+    scheduleTasksEl.querySelectorAll('.task-bump-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const taskId = btn.getAttribute('data-task-id');
+        if (!taskId || !window.electronAPI.bumpTask) return;
+        btn.disabled = true;
+        btn.textContent = '…';
+        const result = await window.electronAPI.bumpTask({ taskId });
+        if (result.error) {
+          btn.textContent = '✗';
+          btn.title = result.error;
+          setTimeout(() => { btn.textContent = '↷'; btn.disabled = false; btn.title = 'Bump to next open slot'; }, 2000);
+        }
+        // On success the schedule-refresh event will reload the list
+      });
+    });
     if (scheduleProjectsEl && scheduleProjectsSection) {
       const projects = data.projects || [];
       scheduleProjectsSection.classList.remove('hidden');
@@ -136,7 +306,50 @@ async function loadUpcomingSchedule() {
         }).join('');
       }
     }
+
+    // Completed this week — natural language recap with toggle
+    if (scheduleCompletedEl && scheduleCompletedSection) {
+      const completed = data.completed || [];
+      if (completed.length === 0) {
+        scheduleCompletedSection.classList.add('hidden');
+      } else {
+        scheduleCompletedSection.classList.remove('hidden');
+        const meetingCount = completed.filter(c => c.type === 'meeting').length;
+        const taskCount = completed.filter(c => c.type !== 'meeting').length;
+        const parts = [];
+        if (meetingCount > 0) parts.push(`${meetingCount} meeting${meetingCount === 1 ? '' : 's'}`);
+        if (taskCount > 0) parts.push(`${taskCount} task${taskCount === 1 ? '' : 's'}`);
+        const summary = `You completed ${parts.join(' and ')} this week.`;
+        const itemsHtml = completed.map(c => `<li>${escapeHtml(c.title)}</li>`).join('');
+        scheduleCompletedEl.innerHTML =
+          `<p class="completed-summary">${summary}</p>` +
+          `<ul class="completed-list hidden">${itemsHtml}</ul>`;
+        const toggleBtn = document.getElementById('completed-toggle-btn');
+        const listEl = scheduleCompletedEl.querySelector('.completed-list');
+        if (toggleBtn && listEl) {
+          const newBtn = toggleBtn.cloneNode(true);
+          toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
+          newBtn.addEventListener('click', () => {
+            const open = !listEl.classList.contains('hidden');
+            listEl.classList.toggle('hidden');
+            newBtn.textContent = open ? 'Show' : 'Hide';
+            newBtn.setAttribute('aria-expanded', String(!open));
+          });
+        }
+      }
+    }
+
+    if (data.conflicts && Array.isArray(data.conflicts.meetingOptions) && data.conflicts.meetingOptions.length > 0) {
+      showMeetingConflictBanner(data.conflicts);
+    } else {
+      hideMeetingConflictBanner();
+    }
+
+    // Re-apply any active highlights after the DOM rebuild so items stay
+    // highlighted for their full start-to-end duration
+    reapplyActiveHighlights();
   } catch (e) {
+    hideMeetingConflictBanner();
   }
 }
 function escapeHtml(s) {
@@ -268,56 +481,6 @@ if (sendBtn && input) {
   });
 }
 
-const DEBUG_LOG_MAX = 50;
-const debugLogLines = [];
-const debugLogEl = document.getElementById('debug-log');
-function appendDebugEntry(entry) {
-  const line = `[${entry.ts.split('T')[1].slice(0, 12)}] ${entry.type}: ${entry.message}${entry.detail ? ' · ' + String(entry.detail).slice(0, 80) : ''}`;
-  debugLogLines.push(line);
-  if (debugLogLines.length > DEBUG_LOG_MAX) debugLogLines.shift();
-  if (debugLogEl) {
-    debugLogEl.textContent = debugLogLines.join('\n');
-    debugLogEl.scrollTop = debugLogEl.scrollHeight;
-  }
-  if (entry.type === 'status' && debugLastStatus) {
-    debugLastStatus.textContent = `Last request: ${entry.message}${entry.detail ? ' · ' + entry.detail : ''}`;
-    if (debugLastError) { debugLastError.classList.add('hidden'); debugLastError.textContent = '—'; }
-  }
-  if (entry.type === 'error') {
-    if (debugLastError) {
-      debugLastError.textContent = entry.detail || entry.message;
-      debugLastError.classList.remove('hidden');
-      debugLastError.classList.add('error');
-    }
-  }
-}
-if (window.electronAPI.onArcDebug) {
-  window.electronAPI.onArcDebug((data) => {
-    appendDebugEntry(data);
-  });
-}
-if (debugToggle && debugPanelEl) {
-  debugToggle.addEventListener('click', () => {
-    const collapsed = debugPanelEl.classList.toggle('collapsed');
-    debugToggle.textContent = collapsed ? '▼ Debug' : '▲ Debug';
-  });
-}
-if (debugCopy) {
-  debugCopy.addEventListener('click', () => {
-    const text = debugLogLines.join('\n');
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => { debugCopy.textContent = 'Copied!'; setTimeout(() => { debugCopy.textContent = 'Copy logs'; }, 1500); });
-    }
-  });
-}
-if (debugClear) {
-  debugClear.addEventListener('click', () => {
-    debugLogLines.length = 0;
-    if (debugLogEl) debugLogEl.textContent = '';
-    if (debugLastStatus) debugLastStatus.textContent = '—';
-    if (debugLastError) { debugLastError.textContent = '—'; debugLastError.classList.add('hidden'); }
-  });
-}
 
 // Simple markdown parser for bot messages
 function parseMarkdown(text) {
@@ -466,7 +629,7 @@ async function handleLocalCommand(text) {
 }
 
 async function doSend() {
-  if (!input) return;
+  if (!isArcChatEnabled || !input || !messages) return;
   const text = input.value.trim();
   if (!text) return;
   appendMessage('user', text);
@@ -483,7 +646,7 @@ async function doSend() {
     if (content) history.push({ role: who, content });
   });
   history.reverse();
-  window.electronAPI.sendMessage(text, history);
+  sendAssistantMessage(text, history);
   startCollapseTimer();
 }
 
@@ -497,10 +660,12 @@ if (input) {
   });
 }
 
-window.electronAPI.onReply((reply) => {
-  debugPanel('onReply received', { replyType: typeof reply, replyLen: typeof reply === 'string' ? reply.length : 0 });
-  appendMessage('bot', reply);
-});
+if (isArcChatEnabled) {
+  window.electronAPI.onReply((reply) => {
+    debugPanel('onReply received', { replyType: typeof reply, replyLen: typeof reply === 'string' ? reply.length : 0 });
+    appendMessage('bot', reply);
+  });
+}
 
 let voiceSettings = { voiceURI: null, rate: 1.0, pitch: 1.0, volume: 1.0 };
 
@@ -568,6 +733,11 @@ function stopSchedulePoll() {
 }
 startSchedulePoll();
 
+// Re-evaluate highlights every 30 seconds so items stay lit for their
+// full start-to-end duration without waiting for the 5-min notifier cycle.
+const HIGHLIGHT_REEVAL_MS = 30 * 1000;
+setInterval(() => reapplyActiveHighlights(), HIGHLIGHT_REEVAL_MS);
+
 if (scheduleRefreshBtn) {
   scheduleRefreshBtn.addEventListener('click', async () => {
     scheduleRefreshBtn.classList.add('refreshing');
@@ -575,6 +745,104 @@ if (scheduleRefreshBtn) {
     setTimeout(() => scheduleRefreshBtn.classList.remove('refreshing'), 400);
   });
 }
+
+// Add to Notion: Meeting / Task / Project
+function setDefaultMeetingDate() {
+  const dateEl = document.getElementById('add-meeting-date');
+  if (!dateEl) return;
+  const d = new Date();
+  if (d.getHours() >= 17) d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  dateEl.value = d.toISOString().slice(0, 10);
+}
+function toggleAddForm(formId, show) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  form.classList.toggle('hidden', !show);
+  const err = form.querySelector('.schedule-add-error');
+  if (err) err.remove();
+}
+function showAddError(formId, message) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  let err = form.querySelector('.schedule-add-error');
+  if (!err) {
+    err = document.createElement('div');
+    err.className = 'schedule-add-error';
+    form.appendChild(err);
+  }
+  err.textContent = message;
+}
+
+document.getElementById('add-meeting-btn')?.addEventListener('click', () => {
+  setDefaultMeetingDate();
+  toggleAddForm('add-meeting-form', true);
+  document.getElementById('add-meeting-title')?.focus();
+});
+document.getElementById('add-meeting-cancel')?.addEventListener('click', () => {
+  toggleAddForm('add-meeting-form', false);
+});
+document.getElementById('add-meeting-submit')?.addEventListener('click', async () => {
+  const title = document.getElementById('add-meeting-title')?.value?.trim();
+  const date = document.getElementById('add-meeting-date')?.value;
+  const time = document.getElementById('add-meeting-time')?.value?.trim();
+  const durationMinutes = parseInt(document.getElementById('add-meeting-duration')?.value, 10) || 60;
+  if (!window.electronAPI.createNotionMeeting) return;
+  const result = await window.electronAPI.createNotionMeeting({ title: title || 'New Meeting', date, time, durationMinutes });
+  if (result.error) {
+    showAddError('add-meeting-form', result.error);
+    return;
+  }
+  if (result.conflict && result.conflict.type === 'meeting_overlap' && result.conflict.newMeetingId) {
+    preferredConflictMeetingId = result.conflict.newMeetingId;
+  }
+  toggleAddForm('add-meeting-form', false);
+  document.getElementById('add-meeting-title').value = '';
+  document.getElementById('add-meeting-time').value = '';
+  const durEl = document.getElementById('add-meeting-duration');
+  if (durEl) durEl.value = '60';
+  await loadUpcomingSchedule();
+});
+
+document.getElementById('add-task-btn')?.addEventListener('click', () => {
+  toggleAddForm('add-task-form', true);
+  document.getElementById('add-task-title')?.focus();
+});
+document.getElementById('add-task-cancel')?.addEventListener('click', () => {
+  toggleAddForm('add-task-form', false);
+});
+document.getElementById('add-task-submit')?.addEventListener('click', async () => {
+  const title = document.getElementById('add-task-title')?.value?.trim();
+  if (!window.electronAPI.createNotionTask) return;
+  const result = await window.electronAPI.createNotionTask({ title: title || 'New Task' });
+  if (result.error) {
+    showAddError('add-task-form', result.error);
+    return;
+  }
+  toggleAddForm('add-task-form', false);
+  document.getElementById('add-task-title').value = '';
+  await loadUpcomingSchedule();
+});
+
+document.getElementById('add-project-btn')?.addEventListener('click', () => {
+  toggleAddForm('add-project-form', true);
+  document.getElementById('add-project-title')?.focus();
+});
+document.getElementById('add-project-cancel')?.addEventListener('click', () => {
+  toggleAddForm('add-project-form', false);
+});
+document.getElementById('add-project-submit')?.addEventListener('click', async () => {
+  const title = document.getElementById('add-project-title')?.value?.trim();
+  if (!window.electronAPI.createNotionProject) return;
+  const result = await window.electronAPI.createNotionProject({ title: title || 'New Project' });
+  if (result.error) {
+    showAddError('add-project-form', result.error);
+    return;
+  }
+  toggleAddForm('add-project-form', false);
+  document.getElementById('add-project-title').value = '';
+  await loadUpcomingSchedule();
+});
 
 // Speech-to-text using Windows Speech Recognition (works offline!)
 let recognizing = false;
@@ -585,7 +853,7 @@ window.electronAPI.onSpeechResult((result) => {
   if (result.text) {
     const confidenceLabel = result.confidence ? ` (${result.confidence}% confident)` : '';
     appendMessage('user', result.text + confidenceLabel);
-    window.electronAPI.sendMessage(result.text);
+    sendAssistantMessage(result.text);
     
     // Alert user if confidence is low
     if (result.confidence && result.confidence < 40) {
@@ -615,7 +883,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   recognition.onresult = (event) => {
     const text = event.results[0][0].transcript;
     appendMessage('user', text);
-    window.electronAPI.sendMessage(text);
+    sendAssistantMessage(text);
   };
   
   recognition.onend = () => { 
@@ -787,7 +1055,7 @@ if (clearHistory) {
       try {
         await window.electronAPI.clearHistory();
         // Clear UI
-        messages.innerHTML = '';
+        if (messages) messages.innerHTML = '';
         settingsStatus.textContent = 'History cleared!';
         settingsStatus.style.color = '#48bb78';
         setTimeout(() => {
@@ -1031,6 +1299,11 @@ window.electronAPI.onNotification((message) => {
 });
 if (window.electronAPI.onUpcomingEvents) {
   window.electronAPI.onUpcomingEvents((events) => {
+    // Cache the full event data (with start/end times) so highlights
+    // persist across schedule DOM rebuilds for the item's full duration
+    if (events && events.length > 0) {
+      lastHighlightEvents = events;
+    }
     renderUpcomingEvents(events);
     highlightScheduleUpcoming(events);
   });

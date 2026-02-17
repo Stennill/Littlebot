@@ -54,7 +54,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   ,onMemoryWrite: (cb) => ipcRenderer.on('memory-write', (event, data) => cb(data))
   // Debug panel (sidebar)
   ,onArcDebug: (cb) => ipcRenderer.on('arc-debug', (event, data) => cb(data))
+  ,getDebugLog: () => ipcRenderer.invoke('get-debug-log')
   // Upcoming schedule for sidebar
   ,getUpcomingSchedule: () => ipcRenderer.invoke('get-upcoming-schedule')
   ,onScheduleRefresh: (cb) => ipcRenderer.on('schedule-refresh', () => cb())
+  // Create items in Notion
+  ,createNotionMeeting: (opts) => ipcRenderer.invoke('create-notion-meeting', opts)
+  ,resolveNotionMeetingConflict: (opts) => ipcRenderer.invoke('resolve-notion-meeting-conflict', opts)
+  ,createNotionTask: (opts) => ipcRenderer.invoke('create-notion-task', opts)
+  ,bumpTask: (opts) => ipcRenderer.invoke('bump-task', opts)
+  ,createNotionProject: (opts) => ipcRenderer.invoke('create-notion-project', opts)
 });

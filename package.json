@@ -8,7 +8,8 @@
     "start": "electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win"
+    "dist:win": "electron-builder --win",
+    "version:bump": "node update-version.js"
   },
   "build": {
     "appId": "com.stennill.littlebot",

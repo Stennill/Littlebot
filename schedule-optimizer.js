@@ -1,69 +1,48 @@
 const notionManager = require('./notion-manager');
 const slackService = require('./slack-service');
-const fs = require('fs').promises;
-const path = require('path');
-const { app } = require('electron');
 
 class ScheduleOptimizer {
   constructor() {
     this.checkInterval = 2 * 60 * 1000; // Check every 2 minutes
     this.lastCheckedItems = new Set();
+    // Bumped items: Map<pageId, dateString> — items the user manually bumped.
+    // The optimizer will not move these items for the rest of that calendar day.
+    this.bumpedItems = new Map();
   }
 
   /**
-   * Generate a conversational message using Claude
+   * Build a canned Slack notification message.
    */
-  async generateClaudeMessage(context, data) {
+  buildSlackMessage(context, data) {
     try {
-      const configPath = path.join(app.getPath('userData'), 'littlebot-config.json');
-      const configData = await fs.readFile(configPath, 'utf8');
-      const config = JSON.parse(configData);
-      
-      if (!config.anthropicKey) {
-        console.log('[Schedule Optimizer] No Anthropic key configured, using simple message');
-        return null;
+      if (context === 'gap_filled') {
+        return `Moved "${data.title}" to ${data.time}, Sir.`;
       }
 
-      const prompt = context === 'overlap_resolution' 
-        ? `You are Arc. Write a SHORT Slack notification (NOT AN EMAIL). Items moved:\n\n${data.items.map(i => `• ${i.title} → ${i.dateTimeStr}`).join('\n')}\n\nRULES:\n- NO greetings ("Hey there", "I hope this finds you well")\n- NO sign-offs ("- Arc", "Best regards", "Cheers")\n- NO "I wanted to let you know"\n- Just state what you did directly\n- Max 1-2 sentences\n\nExample: "Sorted out those overlapping events, Sir." or "Moved a few conflicting items around."`
-        : context === 'gap_filled'
-        ? `You are Arc. Write a SHORT Slack notification (NOT AN EMAIL). Item: "${data.title}" moved to ${data.time}.\n\nRULES:\n- NO greetings or sign-offs\n- NO "I wanted to let you know"\n- Just state the fact\n- Max 1 sentence\n\nExample: "Moved that task to ${data.time}, Sir."`
-        : context === 'stale_review'
-        ? `You are Arc. Write a SHORT Slack notification (NOT AN EMAIL). Item: "${data.title}" rescheduled to ${data.time}.\n\nRULES:\n- NO greetings or sign-offs\n- NO "I hope" or "I wanted to"\n- Just state what you did\n- Max 1 sentence\n\nExample: "Rescheduled that overdue review to ${data.time}, Sir."`
-        : context === 'conflict_resolution'
-        ? `You are Arc. Write a SHORT Slack notification (NOT AN EMAIL). Items moved:\n\n${data.items.map(i => `• ${i.title} → ${i.newDate}`).join('\n')}\n\nRULES:\n- NO "Hey there", "I hope this finds you well", or ANY greetings\n- NO "- Arc", "Best regards", "Cheers", or ANY sign-offs\n- NO "I wanted to let you know" or "just wanted to"\n- Just state what you did, period\n- Max 1-2 sentences\n\nExample: "Caught a few scheduling conflicts and sorted them out, Sir." or "Fixed those overlapping events."`
-        : null;
-
-      if (!prompt) return null;
-
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': config.anthropicKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'claude-3-haiku-20240307',  // Always use Haiku 3 for cost efficiency
-          max_tokens: 150,
-          messages: [{
-            role: 'user',
-            content: prompt
-          }]
-        })
-      });
-
-      if (!response.ok) {
-        console.error('[Schedule Optimizer] Claude API error:', response.status);
-        return null;
+      if (context === 'overlap_resolution') {
+        const items = data.items || [];
+        if (items.length === 1) return `Sorted out an overlap, Sir:\n• ${items[0].title} → ${items[0].dateTimeStr}`;
+        if (items.length > 1) return `Sorted out a few overlaps, Sir:\n${items.map(i => `• ${i.title} → ${i.dateTimeStr}`).join('\n')}`;
+        return `Sorted out an overlap, Sir.`;
       }
 
-      const result = await response.json();
-      const message = result.content?.[0]?.text?.trim();
-      return message || null;
+      if (context === 'conflict_resolution') {
+        const items = data.items || [];
+        if (items.length === 1) return `Resolved a scheduling conflict, Sir:\n• ${items[0].title} → ${items[0].newDate}`;
+        if (items.length > 1) return `Resolved ${items.length} scheduling conflicts, Sir:\n${items.map(i => `• ${i.title} → ${i.newDate}`).join('\n')}`;
+        return `Resolved a scheduling conflict, Sir.`;
+      }
 
-    } catch (error) {
-      console.error('[Schedule Optimizer] Error generating Claude message:', error.message);
+      if (context === 'out_of_window') {
+        const items = data.items || [];
+        if (items.length === 1) return `Moved an off-hours item into your work schedule, Sir:\n• ${items[0].title} → ${items[0].newDate}`;
+        if (items.length > 1) return `Relocated ${items.length} off-hours items into your work schedule, Sir:\n${items.map(i => `• ${i.title} → ${i.newDate}`).join('\n')}`;
+        return `Relocated off-hours items into your work schedule, Sir.`;
+      }
+
+      return null;
+    } catch (e) {
+      console.error('[Schedule Optimizer] Error building Slack message:', e.message);
       return null;
     }
   }
@@ -147,10 +126,22 @@ class ScheduleOptimizer {
   }
 
   /**
-   * Check if an item can be moved based on its status and scheduled date
-   * "Upcoming" items can only be moved if they're on current date or past
+   * Check if an item can be moved based on its status and scheduled date.
+   * "Upcoming" items can only be moved if they're on current date or past.
+   * Bumped items cannot be moved for the rest of the day they were bumped.
+   * Large items (> 60 estimated minutes) are never auto-moved.
    */
-  canItemBeMoved(itemStatus, itemDate) {
+  canItemBeMoved(itemStatus, itemDate, itemId, estimatedMinutes) {
+    // If the user bumped this item today, don't let the optimizer move it back
+    if (itemId && this.isItemBumped(itemId)) {
+      return false;
+    }
+
+    // Large tasks (> 60 min) are intentional time blocks — don't auto-move
+    if (estimatedMinutes && estimatedMinutes > 60) {
+      return false;
+    }
+
     // If status is "Upcoming", check if date is today or earlier
     if (itemStatus === 'Upcoming') {
       const itemDateOnly = new Date(itemDate);
@@ -165,6 +156,38 @@ class ScheduleOptimizer {
     
     // Other statuses can be moved freely (unless they're protected types)
     return true;
+  }
+
+  /**
+   * Register an item as bumped by the user.
+   * The optimizer will not touch it for the rest of the calendar day.
+   */
+  registerBump(pageId) {
+    const todayKey = this.formatDateISO(new Date());
+    this.bumpedItems.set(pageId, todayKey);
+    console.log(`[Schedule Optimizer] Item ${pageId} bumped — protected until end of ${todayKey}`);
+    this._cleanupExpiredBumps();
+  }
+
+  /**
+   * Check whether an item is currently protected by a bump.
+   */
+  isItemBumped(pageId) {
+    const bumpDate = this.bumpedItems.get(pageId);
+    if (!bumpDate) return false;
+    const todayKey = this.formatDateISO(new Date());
+    if (bumpDate === todayKey) return true;
+    // Bump expired (different day) — clean it up
+    this.bumpedItems.delete(pageId);
+    return false;
+  }
+
+  /** Remove bump entries from previous days. */
+  _cleanupExpiredBumps() {
+    const todayKey = this.formatDateISO(new Date());
+    for (const [id, date] of this.bumpedItems) {
+      if (date !== todayKey) this.bumpedItems.delete(id);
+    }
   }
 
   /**
@@ -265,6 +288,9 @@ class ScheduleOptimizer {
       // Check for overlapping items in the schedule and resolve conflicts
       await this.resolveOverlaps(schema, dateProp, titleProp);
 
+      // Relocate items scheduled outside Mon-Fri 8am-4:30pm work window
+      await this.relocateOutOfWindowItems(schema, dateProp, titleProp);
+
       // Clean up old tracked items (keep last 100)
       if (this.lastCheckedItems.size > 100) {
         const items = Array.from(this.lastCheckedItems);
@@ -277,17 +303,24 @@ class ScheduleOptimizer {
   }
 
   /**
-   * Fill a time gap with tasks from future dates
+   * Fill a time gap with tasks from future dates.
+   * Conservative policy: only pull SHORT tasks (≤ 30 min) from TOMORROW.
+   * We never pull items from multiple days away or large time blocks.
    */
   async fillGap(gap, schema, dateProp, titleProp) {
+    const MAX_GAP_FILL_DURATION = 30; // minutes – don't pull tasks bigger than this
+
     try {
       // Get current day's schedule to check for overlaps
       const todaySchedule = await this.getTodaySchedule(dateProp);
       
-      // Get all upcoming unprocessed tasks with times
+      // Only pull tasks from TOMORROW (not further out)
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowKey = this.formatDateISO(tomorrow);
+      const dayAfter = new Date(tomorrow);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      const dayAfterKey = this.formatDateISO(dayAfter);
 
       const upcomingTasks = await notionManager.queryDatabase({
         and: [
@@ -314,11 +347,17 @@ class ScheduleOptimizer {
             date: {
               on_or_after: tomorrowKey
             }
+          },
+          {
+            property: dateProp.name,
+            date: {
+              before: dayAfterKey
+            }
           }
         ]
       });
 
-      // Filter for tasks with times and sort by date
+      // Filter for small tasks with times and sort by date
       const tasksWithTimes = upcomingTasks
         .filter(task => {
           const dateValue = task.properties[dateProp.name];
@@ -331,7 +370,13 @@ class ScheduleOptimizer {
           }
           
           // Check if this item can be moved based on its status and date
-          if (!this.canItemBeMoved(taskStatus, dateValue?.start)) {
+          if (!this.canItemBeMoved(taskStatus, dateValue?.start, task.id, task.properties['Estimated Mintues'])) {
+            return false;
+          }
+
+          // Only pull short tasks into gaps – large tasks are intentional blocks
+          const duration = this.getDefaultDuration(taskType, task.properties['Estimated Mintues']);
+          if (duration > MAX_GAP_FILL_DURATION) {
             return false;
           }
           
@@ -382,15 +427,9 @@ class ScheduleOptimizer {
           
           console.log(`   ✅ Moved "${title}" (${duration} min + ${bufferTime} min buffer) to fill gap at ${this.formatTime(gap.start)}`);
           
-          // Send Slack notification with Claude
           if (slackService.isConfigured()) {
-            const claudeMessage = await this.generateClaudeMessage('gap_filled', { 
-              title: title, 
-              time: this.formatDateTime(proposedStart) 
-            });
-            if (claudeMessage) {
-              await slackService.postMessage(claudeMessage);
-            }
+            const msg = this.buildSlackMessage('gap_filled', { title, time: this.formatDateTime(proposedStart) });
+            if (msg) await slackService.postMessage(msg);
           }
           
           // Add to today's schedule to prevent future overlaps in this run
@@ -456,7 +495,7 @@ class ScheduleOptimizer {
         }
         
         // Check if this item can be moved based on its status and date
-        if (!this.canItemBeMoved(itemStatus, dateValue?.start)) {
+        if (!this.canItemBeMoved(itemStatus, dateValue?.start, item.id, item.properties['Estimated Mintues'])) {
           continue;
         }
         
@@ -507,8 +546,18 @@ class ScheduleOptimizer {
         const movedItems = [];
         
         for (const stale of staleItems) {
-          // Find next available slot that doesn't overlap (and avoid PTO)
-          const slot = this.findNextAvailableTime(todaySchedule, stale.duration, ptoDays);
+          // Prefer rescheduling on the SAME day the item was originally on,
+          // only fall back to the global "next available" if no same-day slot.
+          const origDate = stale.item.properties[dateProp.name]?.start;
+          let slot = null;
+          if (origDate) {
+            const origDay = new Date(origDate);
+            const origDaySchedule = await this.getDaySchedule(dateProp, origDay);
+            slot = this.findNextAvailableTimeOnDay(origDaySchedule, stale.duration, origDay, ptoDays);
+          }
+          if (!slot) {
+            slot = await this.findNextAvailableTime(dateProp, stale.duration, ptoDays, todaySchedule);
+          }
           
           if (!slot) {
             console.log(`   ⚠️ No available slot found for "${stale.title}"`);
@@ -632,7 +681,7 @@ class ScheduleOptimizer {
           }
           
           // Check if this item can be moved based on its status and date
-          if (!this.canItemBeMoved(itemStatus, dateValue?.start)) {
+          if (!this.canItemBeMoved(itemStatus, dateValue?.start, item.id, item.properties['Estimated Mintues'])) {
             return false;
           }
           
@@ -691,8 +740,12 @@ class ScheduleOptimizer {
           schedule.splice(conflictIndex, 1);
         }
 
-        // Find next available slot (avoid PTO days)
-        const slot = this.findNextAvailableTime(schedule, conflict.duration, ptoDays);
+        // Prefer rescheduling on the same day, fall back to next available
+        const conflictDaySchedule = await this.getDaySchedule(dateProp, conflict.start);
+        let slot = this.findNextAvailableTimeOnDay(conflictDaySchedule, conflict.duration, conflict.start, ptoDays);
+        if (!slot) {
+          slot = await this.findNextAvailableTime(dateProp, conflict.duration, ptoDays);
+        }
         
         if (!slot) {
           console.log(`   ⚠️ No available slot found for "${conflict.title}"`);
@@ -729,26 +782,279 @@ class ScheduleOptimizer {
       
       // Post batched Slack message if items were moved
       if (slackService.isConfigured() && movedItems.length > 0) {
-        // Try to generate a conversational message with Claude
-        const claudeMessage = await this.generateClaudeMessage('overlap_resolution', { items: movedItems });
-        
-        let slackMessage;
-        if (claudeMessage) {
-          // Use Claude's conversational message
-          slackMessage = claudeMessage;
-        } else {
-          // Fallback to template
-          slackMessage = movedItems.length === 1 
-            ? `I've adjusted your schedule to prevent a conflict, Sir:\n• ${movedItems[0].title} → ${movedItems[0].dateTimeStr}`
-            : `I've sorted out ${movedItems.length} scheduling conflicts for you, Sir:\n${movedItems.map(item => `• ${item.title} → ${item.dateTimeStr}`).join('\n')}`;
-        }
-        
-        await slackService.postMessage(slackMessage);
+        const slackMessage = this.buildSlackMessage('overlap_resolution', { items: movedItems });
+        if (slackMessage) await slackService.postMessage(slackMessage);
       }
 
     } catch (error) {
       console.error('[Schedule Optimizer] Error resolving overlaps:', error.message);
     }
+  }
+
+  /**
+   * Relocate items scheduled outside the Mon-Fri 8AM-4:30PM work window
+   * into open time slots within the next 14 days.
+   *
+   * "Open time" = any slot NOT occupied by a non-Processed item.
+   * Processed items free up their time slots (considered open).
+   * Upcoming tasks CAN be moved to the current date if there is room.
+   * Tasks default to 5-15 min (uses Estimated Mintues when available).
+   */
+  async relocateOutOfWindowItems(schema, dateProp, titleProp) {
+    try {
+      console.log('[Schedule Optimizer] Checking for items outside work window...');
+
+      const now = new Date();
+      const todayISO = this.formatDateISO(now);
+      const horizon = new Date();
+      horizon.setDate(horizon.getDate() + 14);
+      const horizonISO = this.formatDateISO(horizon);
+
+      const workStart = 8;      // 8:00 AM
+      const workEnd   = 16.5;   // 4:30 PM
+      const workDays  = [1, 2, 3, 4, 5]; // Mon-Fri
+
+      // ── 1. Fetch all non-terminal items in the 14-day window ──────────
+      const candidateItems = await notionManager.queryDatabase({
+        and: [
+          { property: 'Status', status: { does_not_equal: 'Processed' } },
+          { property: 'Status', status: { does_not_equal: 'Resolved' } },
+          { property: 'Status', status: { does_not_equal: 'Not Started' } },
+          { property: dateProp.name, date: { on_or_after: todayISO } },
+          { property: dateProp.name, date: { on_or_before: horizonISO } }
+        ]
+      });
+
+      // ── 2. Identify items that are OUT of the work window ─────────────
+      const outOfWindow = [];
+
+      for (const item of candidateItems) {
+        const dateValue = item.properties[dateProp.name];
+        const itemType  = item.properties['Type'];
+        const itemStatus = item.properties['Status'];
+
+        // Skip protected types
+        if (itemType === 'Break' || itemType === 'PTO' || itemType === 'Project') {
+          continue;
+        }
+
+        // Skip items the user has bumped today
+        if (this.isItemBumped(item.id)) {
+          continue;
+        }
+
+        // Skip large items (> 60 min) — intentional time blocks
+        const estimatedMin = item.properties['Estimated Mintues'];
+        if (estimatedMin && estimatedMin > 60) {
+          continue;
+        }
+
+        // Must have a timed date
+        if (!dateValue || !dateValue.start || !dateValue.start.includes('T')) {
+          continue;
+        }
+
+        const startDt   = new Date(dateValue.start);
+        const dayOfWeek = startDt.getDay();
+        const hour      = startDt.getHours() + startDt.getMinutes() / 60;
+
+        const isWeekend      = !workDays.includes(dayOfWeek);
+        const isBeforeWork   = hour < workStart;
+        const isAfterWork    = hour >= workEnd;
+
+        if (isWeekend || isBeforeWork || isAfterWork) {
+          // For Upcoming items: allow move to current date or keep existing
+          // relaxed rule – we allow Upcoming to be moved into work hours
+          const title = item.properties[titleProp.name] || 'Untitled';
+          const estimatedMin = item.properties['Estimated Mintues'];
+          // Tasks: 5-15 min default (10 if unset); Meetings keep their own duration
+          let duration;
+          if (estimatedMin) {
+            duration = estimatedMin;
+          } else if (itemType === 'Meeting') {
+            // Derive from existing start/end if available
+            if (dateValue.end) {
+              duration = Math.max(5, Math.round((new Date(dateValue.end) - startDt) / 60000));
+            } else {
+              duration = 30;
+            }
+          } else {
+            duration = 10; // Default task duration within 5-15 range
+          }
+
+          const reason = isWeekend ? 'weekend' : isBeforeWork ? 'before 8 AM' : 'after 4:30 PM';
+          console.log(`   ⏰ Out-of-window: "${title}" (${reason}, ${this.formatDateTime(startDt)})`);
+
+          outOfWindow.push({
+            id: item.id,
+            title,
+            start: startDt,
+            end: dateValue.end ? new Date(dateValue.end) : new Date(startDt.getTime() + duration * 60000),
+            duration,
+            type: itemType,
+            status: itemStatus
+          });
+        }
+      }
+
+      if (outOfWindow.length === 0) {
+        console.log('   ✅ All items are within the work window');
+        return;
+      }
+
+      console.log(`   Found ${outOfWindow.length} item(s) outside work window, relocating...`);
+
+      // ── 3. Build occupied-time map from NON-Processed items ───────────
+      // Processed items = open time; only non-Processed block slots
+      const allNonProcessed = await notionManager.queryDatabase({
+        and: [
+          { property: 'Status', status: { does_not_equal: 'Processed' } },
+          { property: dateProp.name, date: { on_or_after: todayISO } },
+          { property: dateProp.name, date: { on_or_before: horizonISO } }
+        ]
+      });
+
+      const occupiedSlots = [];
+      for (const item of allNonProcessed) {
+        const dv = item.properties[dateProp.name];
+        if (!dv || !dv.start || !dv.start.includes('T') || !dv.end) continue;
+        occupiedSlots.push({
+          start: new Date(dv.start),
+          end:   new Date(dv.end)
+        });
+      }
+
+      // ── 4. Get PTO days to block ─────────────────────────────────────
+      const ptoItems = await notionManager.queryDatabase({
+        and: [
+          { property: 'Type', select: { equals: 'PTO' } },
+          { property: dateProp.name, date: { on_or_after: todayISO } },
+          { property: dateProp.name, date: { on_or_before: horizonISO } }
+        ]
+      });
+      const ptoDays = new Set();
+      ptoItems.forEach(item => {
+        const dv = item.properties[dateProp.name];
+        if (dv && dv.start) ptoDays.add(dv.start.split('T')[0]);
+      });
+
+      // ── 5. Relocate each out-of-window item ─────────────────────────
+      const movedItems = [];
+
+      for (const oow of outOfWindow) {
+        // Remove the item's own slot from the occupied list so it doesn't
+        // block itself when searching for a new slot
+        const selfIdx = occupiedSlots.findIndex(s =>
+          s.start.getTime() === oow.start.getTime() &&
+          s.end.getTime()   === oow.end.getTime()
+        );
+        if (selfIdx !== -1) occupiedSlots.splice(selfIdx, 1);
+
+        // For Upcoming tasks: prefer current date first
+        let slot = null;
+        if (oow.status === 'Upcoming') {
+          slot = this._findSlotOnDate(now, occupiedSlots, oow.duration, ptoDays, workStart, workEnd, workDays);
+        }
+
+        // General search: today + next 14 days
+        if (!slot) {
+          slot = this._findWorkWindowSlot(occupiedSlots, oow.duration, ptoDays, workStart, workEnd, workDays, 14);
+        }
+
+        if (!slot) {
+          console.log(`   ⚠️ No work-window slot found for "${oow.title}"`);
+          // Re-add the item's slot back so future searches still see it
+          occupiedSlots.push({ start: oow.start, end: oow.end });
+          continue;
+        }
+
+        // Update Notion
+        const updateProps = {};
+        updateProps[dateProp.name] = {
+          type: 'date',
+          date: {
+            start: this.toESTDatetime(slot.start),
+            end:   this.toESTDatetime(slot.end)
+          }
+        };
+
+        await notionManager.updatePage(oow.id, updateProps);
+
+        // Verify
+        const verified = await this.verifyMove(oow.id, slot.start, dateProp.name);
+        if (verified) {
+          console.log(`   ✅ Relocated "${oow.title}" → ${this.formatDateTime(slot.start)}`);
+          movedItems.push({ title: oow.title, newDate: this.formatDateTime(slot.start) });
+        } else {
+          console.log(`   ❌ Verification failed for "${oow.title}"`);
+        }
+
+        // Register the new slot as occupied for subsequent iterations
+        occupiedSlots.push({ start: slot.start, end: slot.end });
+      }
+
+      if (slackService.isConfigured() && movedItems.length > 0) {
+        const slackMessage = this.buildSlackMessage('out_of_window', { items: movedItems });
+        if (slackMessage) await slackService.postMessage(slackMessage);
+      }
+
+    } catch (error) {
+      console.error('[Schedule Optimizer] Error relocating out-of-window items:', error.message);
+    }
+  }
+
+  /**
+   * Find the first open work-window slot across the next `maxDays` days.
+   * Only non-Processed items occupy time (Processed = open).
+   */
+  _findWorkWindowSlot(occupiedSlots, durationMinutes, ptoDays, workStart, workEnd, workDays, maxDays) {
+    const now = new Date();
+    let checkDate = new Date(now);
+    checkDate.setMinutes(Math.ceil(checkDate.getMinutes() / 5) * 5, 0, 0);
+
+    for (let d = 0; d < maxDays; d++) {
+      const slot = this._findSlotOnDate(checkDate, occupiedSlots, durationMinutes, ptoDays, workStart, workEnd, workDays);
+      if (slot) return slot;
+
+      // Advance to start of next day
+      checkDate = new Date(checkDate);
+      checkDate.setDate(checkDate.getDate() + 1);
+      checkDate.setHours(workStart, 0, 0, 0);
+    }
+    return null;
+  }
+
+  /**
+   * Try to find a slot on a specific date within work hours.
+   * Returns { start, end } or null.
+   */
+  _findSlotOnDate(dateRef, occupiedSlots, durationMinutes, ptoDays, workStart, workEnd, workDays) {
+    const dayOfWeek = dateRef.getDay();
+    if (!workDays.includes(dayOfWeek)) return null;
+
+    const dateKey = this.formatDateISO(dateRef);
+    if (ptoDays.has(dateKey)) return null;
+
+    const dayStart = new Date(dateRef);
+    dayStart.setHours(workStart, 0, 0, 0);
+    const dayEnd = new Date(dateRef);
+    dayEnd.setHours(Math.floor(workEnd), (workEnd % 1) * 60, 0, 0);
+
+    const now = new Date();
+    let cursor = (dateRef.toDateString() === now.toDateString() && now > dayStart) ? new Date(now) : new Date(dayStart);
+    cursor.setMinutes(Math.ceil(cursor.getMinutes() / 5) * 5, 0, 0);
+
+    while (cursor < dayEnd) {
+      const proposedEnd = new Date(cursor.getTime() + durationMinutes * 60000);
+      if (proposedEnd > dayEnd) break;
+
+      if (!this.hasOverlap(occupiedSlots, cursor, proposedEnd)) {
+        return { start: new Date(cursor), end: proposedEnd };
+      }
+      // Advance 5 minutes
+      cursor = new Date(cursor.getTime() + 5 * 60000);
+    }
+    return null;
   }
 
   /**
@@ -762,36 +1068,26 @@ class ScheduleOptimizer {
   }
 
   /**
-   * Get today's schedule (all tasks with start/end times)
+   * Get a day's full schedule — ALL items with start/end times on that date,
+   * regardless of status. Meetings, breaks, tasks, etc. all block time.
+   * Only Processed/Resolved items are excluded (their slots are considered free).
    */
-  async getTodaySchedule(dateProp) {
-    const today = this.formatDateISO(new Date());
-    
+  async getDaySchedule(dateProp, targetDate) {
+    const dateKey = targetDate ? this.formatDateISO(targetDate) : this.formatDateISO(new Date());
+    const nextDay = new Date(targetDate || new Date());
+    nextDay.setDate(nextDay.getDate() + 1);
+    const nextDayKey = this.formatDateISO(nextDay);
+
+    // Use a date range so items with datetime components are included
     const items = await notionManager.queryDatabase({
       and: [
         {
           property: dateProp.name,
-          date: {
-            equals: today
-          }
+          date: { on_or_after: dateKey }
         },
         {
-          property: 'Status',
-          status: {
-            does_not_equal: 'Processed'
-          }
-        },
-        {
-          property: 'Status',
-          status: {
-            does_not_equal: 'Resolved'
-          }
-        },
-        {
-          property: 'Status',
-          status: {
-            does_not_equal: 'Not Started'
-          }
+          property: dateProp.name,
+          date: { before: nextDayKey }
         }
       ]
     });
@@ -799,15 +1095,24 @@ class ScheduleOptimizer {
     const schedule = [];
     for (const item of items) {
       const dateValue = item.properties[dateProp.name];
-      if (dateValue && dateValue.start && dateValue.end) {
-        schedule.push({
-          start: new Date(dateValue.start),
-          end: new Date(dateValue.end)
-        });
-      }
+      if (!dateValue || !dateValue.start || !dateValue.end) continue;
+
+      // Processed / Resolved items free their slot
+      const status = (item.properties['Status'] || '').toString().trim().toLowerCase();
+      if (status === 'processed' || status === 'resolved') continue;
+
+      schedule.push({
+        start: new Date(dateValue.start),
+        end: new Date(dateValue.end)
+      });
     }
 
     return schedule;
+  }
+
+  /** Convenience alias — returns today's schedule. */
+  async getTodaySchedule(dateProp) {
+    return this.getDaySchedule(dateProp, new Date());
   }
 
   /**
@@ -825,36 +1130,71 @@ class ScheduleOptimizer {
   }
 
   /**
-   * Find next available time slot that doesn't overlap
-   * Searches across multiple days (up to 30 days) to find a suitable slot
+   * Find next available time slot on a specific day only.
+   * Returns null if nothing fits on that day.
    */
-  findNextAvailableTime(schedule, durationMinutes, ptoDays = new Set()) {
+  findNextAvailableTimeOnDay(schedule, durationMinutes, targetDay, ptoDays = new Set()) {
+    const workStart = 8;
+    const workEnd = 16.5;
+    const workDays = [1, 2, 3, 4, 5];
+    const dayOfWeek = targetDay.getDay();
+    const dateKey = this.formatDateISO(targetDay);
+
+    if (!workDays.includes(dayOfWeek) || ptoDays.has(dateKey)) return null;
+
+    const dayStart = new Date(targetDay);
+    dayStart.setHours(workStart, 0, 0, 0);
+    const dayEnd = new Date(targetDay);
+    dayEnd.setHours(Math.floor(workEnd), (workEnd % 1) * 60, 0, 0);
+
     const now = new Date();
-    const workStart = 8; // 8 AM
-    const workEnd = 16.5; // 4:30 PM
-    const workDays = [1, 2, 3, 4, 5]; // Monday - Friday
-    
-    // Start from current time, round up to next 5-minute mark
+    let slotTime = new Date(Math.max(dayStart.getTime(), now.getTime()));
+    slotTime.setMinutes(Math.ceil(slotTime.getMinutes() / 5) * 5, 0, 0);
+
+    while (slotTime < dayEnd) {
+      const proposedEnd = new Date(slotTime.getTime() + durationMinutes * 60 * 1000);
+      if (proposedEnd <= dayEnd && !this.hasOverlap(schedule, slotTime, proposedEnd)) {
+        return { start: slotTime, end: proposedEnd };
+      }
+      slotTime = new Date(slotTime.getTime() + 5 * 60 * 1000);
+    }
+    return null;
+  }
+
+  /**
+   * Find next available time slot that doesn't overlap.
+   * Fetches the REAL schedule for each candidate day so meetings, breaks,
+   * and all non-free items are respected.
+   * @param {object} dateProp - The Notion date property descriptor
+   * @param {number} durationMinutes - Required slot length in minutes
+   * @param {Set} ptoDays - Date strings (YYYY-MM-DD) of PTO days to skip
+   * @param {Array|null} todayScheduleOverride - Pre-fetched schedule for today
+   */
+  async findNextAvailableTime(dateProp, durationMinutes, ptoDays = new Set(), todayScheduleOverride = null) {
+    const now = new Date();
+    const workStart = 8;
+    const workEnd = 16.5;
+    const workDays = [1, 2, 3, 4, 5];
+
     let checkTime = new Date(now);
     checkTime.setMinutes(Math.ceil(checkTime.getMinutes() / 5) * 5, 0, 0);
-    
-    // Check for next 30 days (similar to scheduler)
+
     const maxDays = 30;
     let daysChecked = 0;
-    
+    let lastDateKey = null;
+    let daySchedule = null;
+
     while (daysChecked < maxDays) {
       const dayOfWeek = checkTime.getDay();
       const dateKey = this.formatDateISO(checkTime);
-      
-      // Skip weekends
+
       if (!workDays.includes(dayOfWeek)) {
         checkTime.setDate(checkTime.getDate() + 1);
         checkTime.setHours(workStart, 0, 0, 0);
         daysChecked++;
         continue;
       }
-      
-      // CRITICAL: Skip PTO days
+
       if (ptoDays.has(dateKey)) {
         console.log(`   🏖️  Skipping PTO day: ${dateKey}`);
         checkTime.setDate(checkTime.getDate() + 1);
@@ -862,48 +1202,43 @@ class ScheduleOptimizer {
         daysChecked++;
         continue;
       }
-      
-      // Only check work days (this is now redundant but kept for clarity)
-      if (workDays.includes(dayOfWeek)) {
-        // Get work start/end for this day
-        const dayStart = new Date(checkTime);
-        dayStart.setHours(workStart, 0, 0, 0);
-        
-        const dayEnd = new Date(checkTime);
-        dayEnd.setHours(Math.floor(workEnd), (workEnd % 1) * 60, 0, 0);
-        
-        // If we're checking current day, start from current time
-        let startTime = checkTime.getTime() > dayStart.getTime() ? checkTime : dayStart;
-        
-        // Check 5-minute intervals throughout the work day
-        let slotTime = new Date(startTime);
-        while (slotTime < dayEnd) {
-          const proposedEnd = new Date(slotTime.getTime() + (durationMinutes * 60 * 1000));
-          
-          // Make sure task ends within work hours
-          if (proposedEnd <= dayEnd) {
-            // Check for overlaps
-            if (!this.hasOverlap(schedule, slotTime, proposedEnd)) {
-              return {
-                start: slotTime,
-                end: proposedEnd
-              };
-            }
-          }
-          
-          // Move to next 5-minute slot
-          slotTime = new Date(slotTime.getTime() + (5 * 60 * 1000));
+
+      // Fetch real schedule for this day (once per day)
+      if (dateKey !== lastDateKey) {
+        const todayKey = this.formatDateISO(now);
+        if (dateKey === todayKey && todayScheduleOverride) {
+          daySchedule = todayScheduleOverride;
+        } else {
+          daySchedule = await this.getDaySchedule(dateProp, checkTime);
         }
+        lastDateKey = dateKey;
       }
-      
-      // Move to next day at work start time
+
+      const dayStart = new Date(checkTime);
+      dayStart.setHours(workStart, 0, 0, 0);
+      const dayEnd = new Date(checkTime);
+      dayEnd.setHours(Math.floor(workEnd), (workEnd % 1) * 60, 0, 0);
+
+      let startTime = checkTime.getTime() > dayStart.getTime() ? checkTime : dayStart;
+      let slotTime = new Date(startTime);
+
+      while (slotTime < dayEnd) {
+        const proposedEnd = new Date(slotTime.getTime() + (durationMinutes * 60 * 1000));
+        if (proposedEnd <= dayEnd) {
+          if (!this.hasOverlap(daySchedule, slotTime, proposedEnd)) {
+            return { start: slotTime, end: proposedEnd };
+          }
+        }
+        slotTime = new Date(slotTime.getTime() + (5 * 60 * 1000));
+      }
+
       checkTime.setDate(checkTime.getDate() + 1);
       checkTime.setHours(workStart, 0, 0, 0);
       daysChecked++;
     }
-    
+
     console.log('   ⚠️ No available slot found in next 30 days for duration:', durationMinutes, 'minutes');
-    return null; // No available slot found
+    return null;
   }
 
   /**
@@ -1183,66 +1518,41 @@ class ScheduleOptimizer {
           
           console.log(`   🏖️  Moving item from PTO day: "${itemToMove.title}" on ${conflict.date}`);
           
-          // Find next available non-PTO day
-          let targetDate = new Date(conflict.date);
-          let attempts = 0;
-          
-          do {
-            targetDate.setDate(targetDate.getDate() + 1);
-            attempts++;
-            
-            // Skip weekends
-            while (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
-              targetDate.setDate(targetDate.getDate() + 1);
-            }
-            
-            const targetDateISO = this.formatDateISO(targetDate);
-            
-            // Check if this day is also PTO
-            if (!ptoDays.has(targetDateISO)) {
-              break; // Found a non-PTO day
-            }
-          } while (attempts < 14); // Max 2 weeks ahead
-          
-          // Preserve original time if it exists
           if (itemToMove.start) {
-            const originalTime = itemToMove.start.toTimeString().split(' ')[0];
-            const [hours, minutes] = originalTime.split(':');
-            targetDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-            
-            const newStart = this.toESTDatetime(targetDate);
-            const newEnd = this.toESTDatetime(new Date(targetDate.getTime() + itemToMove.duration * 60 * 1000));
-            
+            // Timed item — find a verified open slot using the standard search
+            const slot = await this.findNextAvailableTime(dateProp, itemToMove.duration, ptoDays);
+            if (!slot) {
+              console.log(`   ⚠️ No available slot found for "${itemToMove.title}"`);
+              continue;
+            }
+            const newStart = this.toESTDatetime(slot.start);
+            const newEnd = this.toESTDatetime(slot.end);
             const updateProps = {};
-            updateProps[dateProp.name] = {
-              type: 'date',
-              date: {
-                start: newStart,
-                end: newEnd
-              }
-            };
-            
+            updateProps[dateProp.name] = { type: 'date', date: { start: newStart, end: newEnd } };
             await notionManager.updatePage(itemToMove.id, updateProps);
+
+            movedItems.push({ title: itemToMove.title, newDate: this.formatDateTime(slot.start), reason: 'PTO day' });
+            console.log(`   ✅ Moved "${itemToMove.title}" from PTO day to ${this.formatDateTime(slot.start)}`);
           } else {
-            // Date-only item
-            const updateProps = {};
-            updateProps[dateProp.name] = {
-              type: 'date',
-              date: {
-                start: this.formatDateISO(targetDate)
+            // Date-only item — move to next non-PTO workday
+            let targetDate = new Date(conflict.date);
+            let attempts = 0;
+            do {
+              targetDate.setDate(targetDate.getDate() + 1);
+              attempts++;
+              while (targetDate.getDay() === 0 || targetDate.getDay() === 6) {
+                targetDate.setDate(targetDate.getDate() + 1);
               }
-            };
-            
+              if (!ptoDays.has(this.formatDateISO(targetDate))) break;
+            } while (attempts < 14);
+
+            const updateProps = {};
+            updateProps[dateProp.name] = { type: 'date', date: { start: this.formatDateISO(targetDate) } };
             await notionManager.updatePage(itemToMove.id, updateProps);
+
+            movedItems.push({ title: itemToMove.title, newDate: this.formatDateTime(targetDate), reason: 'PTO day' });
+            console.log(`   ✅ Moved "${itemToMove.title}" from PTO day to ${this.formatDateTime(targetDate)}`);
           }
-          
-          movedItems.push({
-            title: itemToMove.title,
-            newDate: this.formatDateTime(targetDate),
-            reason: 'PTO day'
-          });
-          
-          console.log(`   ✅ Moved "${itemToMove.title}" from PTO day to ${this.formatDateTime(targetDate)}`);
         } else if (conflict.type === 'overlap') {
           // Determine which item to move - NEVER move Meetings, Breaks, PTO, or future Upcoming items
           let itemToMove = null;
@@ -1257,9 +1567,9 @@ class ScheduleOptimizer {
           
           // Check if items can be moved based on status and date
           const canMove1 = (item1Type !== 'Meeting' && item1Type !== 'Break' && item1Type !== 'PTO') && 
-                          this.canItemBeMoved(item1Status, item1Start);
+                          this.canItemBeMoved(item1Status, item1Start, conflict.item1.id, conflict.item1.duration);
           const canMove2 = (item2Type !== 'Meeting' && item2Type !== 'Break' && item2Type !== 'PTO') && 
-                          this.canItemBeMoved(item2Status, item2Start);
+                          this.canItemBeMoved(item2Status, item2Start, conflict.item2.id, conflict.item2.duration);
           
           // Determine which item to move
           if (canMove2 && !canMove1) {
@@ -1284,21 +1594,23 @@ class ScheduleOptimizer {
           
           if (!itemToMove) continue;
           
-          const currentDate = new Date(conflict.date);
-          
           console.log(`   🔧 Fixing overlap: Moving "${itemToMove.title}" (${itemToMove.type})`);
           
-          // Try to find next available slot (next day, same time)
-          let targetDate = new Date(currentDate);
-          targetDate.setDate(targetDate.getDate() + 1);
+          // First try later on the SAME day, then search future days
+          const sameDaySchedule = await this.getDaySchedule(dateProp, itemToMove.start);
+          let slot = this.findNextAvailableTimeOnDay(sameDaySchedule, itemToMove.duration, itemToMove.start, ptoDays);
+          if (!slot) {
+            slot = await this.findNextAvailableTime(dateProp, itemToMove.duration, ptoDays);
+          }
           
-          // Preserve the original time
-          const originalTime = itemToMove.start.toTimeString().split(' ')[0];
-          const [hours, minutes] = originalTime.split(':');
-          targetDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-          
-          const newStart = this.toESTDatetime(targetDate);
-          const newEnd = this.toESTDatetime(new Date(targetDate.getTime() + itemToMove.duration * 60 * 1000));
+          if (!slot) {
+            console.log(`   ⚠️ No available slot found for "${itemToMove.title}"`);
+            continue;
+          }
+
+          const targetDate = slot.start;
+          const newStart = this.toESTDatetime(slot.start);
+          const newEnd = this.toESTDatetime(slot.end);
           
           const updateProps = {};
           updateProps[dateProp.name] = {
@@ -1327,19 +1639,8 @@ class ScheduleOptimizer {
 
       // Send Slack notification if conflicts were fixed
       if (slackService.isConfigured() && movedItems.length > 0) {
-        const claudeMessage = await this.generateClaudeMessage('conflict_resolution', {
-          items: movedItems
-        });
-        
-        if (claudeMessage) {
-          await slackService.postMessage(claudeMessage);
-        } else {
-          // Fallback message
-          const message = movedItems.length === 1
-            ? `I detected and resolved a scheduling conflict, Sir:\n• ${movedItems[0].title} → ${movedItems[0].newDate}`
-            : `I've sorted out ${movedItems.length} scheduling conflicts for you, Sir:\n${movedItems.map(i => `• ${i.title} → ${i.newDate}`).join('\n')}`;
-          await slackService.postMessage(message);
-        }
+        const slackMessage = this.buildSlackMessage('conflict_resolution', { items: movedItems });
+        if (slackMessage) await slackService.postMessage(slackMessage);
       }
 
     } catch (error) {

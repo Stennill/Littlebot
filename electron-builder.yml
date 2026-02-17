@@ -1,0 +1,4 @@
+# Optional: overrides / extras for electron-builder (merged with package.json "build")
+# Disable code signing so the build does not require winCodeSign (avoids symlink errors on Windows without Admin/Developer Mode).
+win:
+  signAndEditExecutable: false

@@ -132,17 +132,34 @@ class NotionManager {
   }
 
   /**
-   * Create a new page in database (DISABLED - read-only mode)
+   * Create a new page in the database.
+   * @param {Object} properties - Keyed by property name; values in Notion API shape (e.g. { title: [{ text: { content: "..." } }] }, { date: { start: "ISO" } }, { select: { name: "Meeting" } }, { status: { name: "In Progress" } })
    */
   async createPage(properties) {
-    throw new Error('Notion is configured for read-only access. Create is disabled.');
+    if (!this.databaseId) {
+      throw new Error('Notion database ID not configured');
+    }
+    const body = {
+      parent: { database_id: this.databaseId },
+      properties
+    };
+    const data = await this.makeRequest('/pages', 'POST', body);
+    return this.formatPage(data);
   }
 
   /**
-   * Update an existing page (DISABLED - read-only mode)
+   * Update an existing page
    */
   async updatePage(pageId, properties) {
-    throw new Error('Notion is configured for read-only access. Update is disabled.');
+    if (!this.apiKey) {
+      throw new Error('Notion API key not configured');
+    }
+    if (!pageId) {
+      throw new Error('Missing pageId');
+    }
+    const body = { properties: properties || {} };
+    const data = await this.makeRequest(`/pages/${pageId}`, 'PATCH', body);
+    return this.formatPage(data);
   }
 
   /**

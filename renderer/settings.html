@@ -4,257 +4,335 @@
   <meta charset="UTF-8">
   <title>LittleBot Settings</title>
   <style>
-    body {
+    :root {
+      /* Keep Settings consistent with renderer/styles.css tokens */
+      --bg-primary: #1a1d24;
+      --bg-secondary: #22262e;
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-elevated: rgba(255, 255, 255, 0.06);
+      --accent: rgba(0, 212, 255, 0.9);
+      --accent-muted: rgba(0, 200, 255, 0.6);
+      --accent-success: rgba(134, 239, 172, 0.9);
+      --accent-warm: rgba(251, 191, 36, 0.9);
+      --text-primary: rgba(248, 250, 252, 0.98);
+      --text-secondary: rgba(203, 213, 225, 0.9);
+      --text-tertiary: rgba(148, 163, 184, 0.85);
+      --color-alert: #f87171;
+      --radius: 10px;
+      --radius-sm: 8px;
+      --space: 8px;
+      --space-lg: 16px;
+      --divider-color: rgba(255, 255, 255, 0.12);
+      --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body.theme-light {
+      --bg-primary: #f1f5f9;
+      --bg-secondary: #e2e8f0;
+      --surface: rgba(0, 0, 0, 0.03);
+      --surface-elevated: rgba(0, 0, 0, 0.06);
+      --accent: rgba(14, 165, 233, 0.95);
+      --accent-muted: rgba(14, 165, 233, 0.7);
+      --accent-success: rgba(34, 197, 94, 0.9);
+      --accent-warm: rgba(245, 158, 11, 0.9);
+      --text-primary: rgba(15, 23, 42, 0.95);
+      --text-secondary: rgba(71, 85, 105, 0.9);
+      --text-tertiary: rgba(100, 116, 139, 0.85);
+      --color-alert: #dc2626;
+      --divider-color: rgba(0, 0, 0, 0.1);
+      --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    * { scrollbar-width: none; }
+    *::-webkit-scrollbar { display: none; }
+
+    html, body {
+      height: 100%;
       margin: 0;
-      padding: 20px;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-    
-    .container {
-      max-width: 460px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 16px;
-      padding: 15px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    }
-    
-    h2 {
-      margin: 0 0 20px 0;
-      color: #1a202c;
-      font-size: 24px;
-      font-weight: 600;
-    }
-    
-    label {
-      display: block;
-      color: #4a5568;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      margin-top: 14px;
-    }
-    
-    input, select {
       width: 100%;
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 2px solid #e2e8f0;
-      background: #fff;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    body {
+      padding: var(--space-lg);
+      box-sizing: border-box;
+      overflow: auto;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
+    }
+
+    .page-title {
+      margin: 0 0 4px 0;
       font-size: 14px;
-      transition: border-color 0.2s;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .page-subtitle {
+      margin: 0 0 var(--space-lg) 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+    }
+
+    .section {
+      padding: var(--space-lg);
+      border-radius: 12px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--divider-color);
+    }
+
+    .section + .section {
+      margin-top: var(--space-lg);
+    }
+
+    .section-title {
+      margin: 0 0 10px 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field + .field {
+      margin-top: 12px;
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text-secondary);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--divider-color);
+      background: rgba(0, 0, 0, 0.12);
+      color: var(--text-primary);
+      font-size: 12px;
       box-sizing: border-box;
       font-family: inherit;
-    }
-    
-    input:focus, select:focus {
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
-    
-    .button-group {
+
+    body.theme-light input,
+    body.theme-light select,
+    body.theme-light textarea {
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(0, 212, 255, 0.6);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
+    }
+
+    .button-row {
       display: flex;
       gap: 10px;
-      margin-top: 24px;
+      margin-top: 12px;
     }
-    
+
+    .button-row.two {
+      margin-top: var(--space);
+    }
+
     button {
       flex: 1;
-      padding: 12px 20px;
+      padding: 10px 12px;
       border-radius: 10px;
-      border: none;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-    
-    button.primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-    
-    button.primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-    }
-    
-    button.secondary {
-      background: #e2e8f0;
-      color: #4a5568;
-    }
-    
-    button.secondary:hover {
-      background: #cbd5e0;
-    }
-    
-    button.danger {
-      background: #fc8181;
-      color: white;
-    }
-    
-    button.danger:hover {
-      background: #f56565;
-    }
-    
-    .status {
-      margin-top: 12px;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      text-align: center;
-    }
-    
-    .status.success {
-      background: #c6f6d5;
-      color: #22543d;
-    }
-    
-    .status.error {
-      background: #fed7d7;
-      color: #742a2a;
-    }
-    
-    .status.hidden {
-      display: none;
-    }
-    
-    input[type=range] {
-      height: 6px;
-      border-radius: 3px;
-      background: #e2e8f0;
-      outline: none;
-      border: none;
-      padding: 0;
-    }
-    
-    input[type=range]::-webkit-slider-thumb {
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      cursor: pointer;
-      margin: 10px;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
-    
-    input[type=range]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      cursor: pointer;
-      border: none;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
-    
-    .range-value {
-      display: inline-block;
-      margin-left: 8px;
-      color: #667eea;
-      font-weight: 600;
-    }
-    
-    pre {
-      background: #1a202c;
-      color: #e2e8f0;
-      padding: 14px;
-      border-radius: 10px;
-      overflow: auto;
-      max-height: 200px;
+      border: 1px solid var(--divider-color);
       font-size: 12px;
-      line-height: 1.5;
-      margin-top: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), background var(--transition), color var(--transition);
+      font-family: inherit;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
     }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0px); }
+
+    button.primary {
+      border-color: rgba(0, 212, 255, 0.35);
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.22), rgba(0, 212, 255, 0.08));
+      box-shadow: 0 8px 20px rgba(0, 212, 255, 0.08);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+    }
+
+    button.danger {
+      border-color: rgba(248, 113, 113, 0.35);
+      background: rgba(248, 113, 113, 0.12);
+      color: var(--text-primary);
+    }
+
+    .status {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      border: 1px solid var(--divider-color);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+    }
+
+    .status.success {
+      border-color: rgba(134, 239, 172, 0.25);
+      background: rgba(134, 239, 172, 0.08);
+      color: var(--text-primary);
+    }
+
+    .status.error {
+      border-color: rgba(248, 113, 113, 0.25);
+      background: rgba(248, 113, 113, 0.08);
+      color: var(--text-primary);
+    }
+
+    .status.hidden { display: none; }
+
+    pre {
+      margin: 10px 0 0 0;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--divider-color);
+      background: rgba(0, 0, 0, 0.18);
+      color: var(--text-secondary);
+      overflow: auto;
+      max-height: 220px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .help {
+      margin: 6px 0 0 0;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+    }
+
+    .debug-status {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-family: ui-monospace, monospace;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .debug-status .hidden { display: none; }
+    .debug-status .error { color: var(--color-alert); }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>⚙️ Settings</h2>
-    
-    <label>Anthropic API Key</label>
-    <input id="apiKeyInput" type="password" placeholder="sk-ant-..." />
-    
-    <label>Anthropic Version (optional)</label>
-    <input id="anthropicVersionInput" placeholder="2023-06-01" />
-    
-    <label>Anthropic Model (optional)</label>
-    <input id="anthropicModelInput" placeholder="claude-3-haiku-20240307" />
-    
-    <label>Slack Webhook URL (optional)</label>
-    <input id="slackWebhookInput" type="text" placeholder="https://hooks.slack.com/services/..." />
-    
-    <label>Notion API Key (optional)</label>
-    <input id="notionApiKeyInput" type="password" placeholder="secret_..." />
-    
-    <label>Notion Database ID (optional)</label>
-    <input id="notionDatabaseIdInput" type="text" placeholder="abc123..." />
-    
-    <label>Theme</label>
-    <select id="themeSelect">
-      <option value="dark">Dark</option>
-      <option value="light">Light</option>
-    </select>
-    
-    <label>Voice</label>
-    <select id="voiceSelect"></select>
-    
-    <label>Rate <span class="range-value" id="rateVal">1.0</span></label>
-    <input id="rateInput" type="range" min="0.5" max="2" step="0.1" value="1" />
-    
-    <label>Pitch <span class="range-value" id="pitchVal">1.0</span></label>
-    <input id="pitchInput" type="range" min="0.5" max="2" step="0.1" value="1" />
-    
-    <label>Volume <span class="range-value" id="volumeVal">1.0</span></label>
-    <input id="volumeInput" type="range" min="0" max="1" step="0.1" value="1" />
-    
-    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
-    
-    <h3 style="font-size: 16px; margin: 16px 0 8px 0; color: #1a202c;">System Prompt</h3>
-    <label style="display: flex; align-items: center; gap: 8px;">
-      <input type="checkbox" id="promptLockToggle" />
-      Lock System Prompt (prevent changes)
-    </label>
-    
-    <label>System Prompt Text</label>
-    <textarea id="systemPromptInput" style="width: 100%; height: 150px; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; font-size: 13px; font-family: 'Segoe UI', system-ui, sans-serif; resize: vertical;" placeholder="Loading..."></textarea>
-    
-    <button class="primary" id="savePromptBtn" style="width: 100%; margin-top: 8px;">Save System Prompt</button>
-    
-    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
-    
-    <h3 style="font-size: 16px; margin: 16px 0 8px 0; color: #1a202c;">Memory GitHub Sync</h3>
-    <p style="font-size: 13px; color: #4a5568; margin: 8px 0;">Sync your memory file with the GitHub repository</p>
-    
-    <div class="button-group">
-      <button class="primary" id="syncMemoryBtn" style="flex: 1;">Push to GitHub</button>
-      <button class="secondary" id="pullMemoryBtn" style="flex: 1;">Pull from GitHub</button>
+    <h2 class="page-title">Settings</h2>
+    <p class="page-subtitle">Keys, integrations, and preferences.</p>
+
+    <div class="section">
+      <h3 class="section-title">Core</h3>
+
+      <div class="field">
+        <div class="label">Anthropic API Key</div>
+        <input id="apiKeyInput" type="password" placeholder="sk-ant-..." />
+      </div>
+
+      <div class="field">
+        <div class="label">Anthropic Version (optional)</div>
+        <input id="anthropicVersionInput" placeholder="2023-06-01" />
+      </div>
+
+      <div class="field">
+        <div class="label">Anthropic Model (optional)</div>
+        <input id="anthropicModelInput" placeholder="claude-3-haiku-20240307" />
+      </div>
+
+      <div class="field">
+        <div class="label">Theme</div>
+        <select id="themeSelect">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
     </div>
-    
-    <div id="memoryStatus" class="status hidden"></div>
-    
-    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
-    
-    <div class="button-group">
-      <button class="primary" id="saveBtn">Save</button>
-      <button class="secondary" id="probeApiBtn">Test API</button>
+
+    <div class="section">
+      <h3 class="section-title">Integrations</h3>
+
+      <div class="field">
+        <div class="label">Slack Webhook URL (optional)</div>
+        <input id="slackWebhookInput" type="text" placeholder="https://hooks.slack.com/services/..." />
+      </div>
+
+      <div class="field">
+        <div class="label">Notion API Key (optional)</div>
+        <input id="notionApiKeyInput" type="password" placeholder="secret_..." />
+      </div>
+
+      <div class="field">
+        <div class="label">Notion Database ID (optional)</div>
+        <input id="notionDatabaseIdInput" type="text" placeholder="abc123..." />
+      </div>
     </div>
-    
-    <div class="button-group">
-      <button class="danger" id="clearHistoryBtn">Clear History</button>
-      <button class="secondary" id="closeBtn">Close</button>
+
+    <div class="section">
+      <h3 class="section-title">Actions</h3>
+
+      <div class="button-row">
+        <button class="primary" id="saveBtn">Save</button>
+        <button class="secondary" id="probeApiBtn">Test API</button>
+      </div>
+
+      <div class="button-row two">
+        <button class="danger" id="clearHistoryBtn">Clear History</button>
+        <button class="secondary" id="closeBtn">Close</button>
+      </div>
+
+      <div id="status" class="status hidden"></div>
+      <pre id="probeResult" class="hidden"></pre>
     </div>
-    
-    <div id="status" class="status hidden"></div>
-    <pre id="probeResult" class="hidden"></pre>
+
+    <div class="section">
+      <h3 class="section-title">Debug Log</h3>
+      <div id="debug-status" class="debug-status">
+        <span id="debug-last-status">—</span>
+        <span id="debug-last-error" class="hidden">—</span>
+      </div>
+      <div class="button-row two">
+        <button class="secondary" id="debug-copy">Copy Logs</button>
+        <button class="secondary" id="debug-clear">Clear</button>
+      </div>
+      <pre id="debug-log"></pre>
+    </div>
   </div>
   
   <script src="settings.js"></script>
